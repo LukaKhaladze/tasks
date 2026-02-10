@@ -1287,7 +1287,6 @@ export default function BoardClient({
                           const status = dueStatus(project);
                           return status === 'none' ? null : status;
                         })()}
-                        onOpen={() => setSelectedProjectId(project.id)}
                         onPin={() => handlePinProject(project)}
                         onCycleColor={() => handleCycleColor(project)}
                         onDelete={() => setConfirmDelete(project)}
