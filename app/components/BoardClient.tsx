@@ -240,6 +240,10 @@ export default function BoardClient({
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Project | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserRole, setNewUserRole] = useState<'admin' | 'member'>('member');
 
   const currentProfile = useMemo(
     () => profiles.find((profile) => profile.id === user.id),
@@ -631,6 +635,92 @@ export default function BoardClient({
     );
   };
 
+  const handleAdminUpdateUser = async (
+    profile: Profile,
+    updates: { email?: string; name?: string; password?: string; role?: 'admin' | 'member' }
+  ) => {
+    const previous = profiles;
+    const next = profiles.map((item) =>
+      item.id === profile.id
+        ? { ...item, ...updates, role: updates.role ?? item.role }
+        : item
+    );
+    await runOptimistic(
+      () => setProfiles(next),
+      () => setProfiles(previous),
+      async () => {
+        const res = await fetch(`/api/admin/users/${profile.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates)
+        });
+        if (!res.ok) {
+          const body = await res.json();
+          return { error: { message: body.error ?? 'Update failed' } } as any;
+        }
+        return { error: null } as any;
+      }
+    );
+  };
+
+  const handleAdminCreateUser = async () => {
+    if (!newUserEmail) return;
+    const previous = profiles;
+    await runOptimistic(
+      () => {},
+      () => setProfiles(previous),
+      async () => {
+        const res = await fetch('/api/admin/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: newUserEmail,
+            password: newUserPassword || undefined,
+            name: newUserName || undefined,
+            role: newUserRole
+          })
+        });
+        if (!res.ok) {
+          const body = await res.json();
+          return { error: { message: body.error ?? 'Create failed' } } as any;
+        }
+        const { id } = await res.json();
+        setProfiles((prev) => [
+          ...prev,
+          {
+            id,
+            email: newUserEmail,
+            name: newUserName || null,
+            role: newUserRole
+          }
+        ]);
+        setNewUserEmail('');
+        setNewUserPassword('');
+        setNewUserName('');
+        setNewUserRole('member');
+        return { error: null } as any;
+      }
+    );
+  };
+
+  const handleAdminDeleteUser = async (profile: Profile) => {
+    const previous = profiles;
+    await runOptimistic(
+      () => setProfiles((prev) => prev.filter((item) => item.id !== profile.id)),
+      () => setProfiles(previous),
+      async () => {
+        const res = await fetch(`/api/admin/users/${profile.id}`, {
+          method: 'DELETE'
+        });
+        if (!res.ok) {
+          const body = await res.json();
+          return { error: { message: body.error ?? 'Delete failed' } } as any;
+        }
+        return { error: null } as any;
+      }
+    );
+  };
+
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -953,6 +1043,46 @@ export default function BoardClient({
           {isAdmin && (
             <div className="mt-6">
               <h3 className="text-sm font-semibold mb-2">Manage Users</h3>
+              <div className="rounded-lg border border-board-700 bg-board-850 p-3 mb-4">
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-4">
+                  <input
+                    value={newUserEmail}
+                    onChange={(event) => setNewUserEmail(event.target.value)}
+                    placeholder="Email"
+                    className="rounded-lg bg-board-900 border border-board-700 px-3 py-2 text-sm"
+                  />
+                  <input
+                    value={newUserPassword}
+                    onChange={(event) => setNewUserPassword(event.target.value)}
+                    placeholder="Temp password"
+                    className="rounded-lg bg-board-900 border border-board-700 px-3 py-2 text-sm"
+                  />
+                  <input
+                    value={newUserName}
+                    onChange={(event) => setNewUserName(event.target.value)}
+                    placeholder="Name"
+                    className="rounded-lg bg-board-900 border border-board-700 px-3 py-2 text-sm"
+                  />
+                  <div className="flex gap-2">
+                    <select
+                      value={newUserRole}
+                      onChange={(event) =>
+                        setNewUserRole(event.target.value as 'admin' | 'member')
+                      }
+                      className="flex-1 rounded-lg bg-board-900 border border-board-700 px-3 py-2 text-sm"
+                    >
+                      <option value="member">Member</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                    <button
+                      onClick={handleAdminCreateUser}
+                      className="rounded-lg bg-accent-500 px-3 text-sm font-semibold text-white"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+              </div>
               <div className="space-y-2">
                 {profiles.map((profile) => (
                   <div
@@ -960,19 +1090,53 @@ export default function BoardClient({
                     className="flex items-center justify-between rounded-lg border border-board-700 bg-board-850 px-3 py-2 text-sm"
                   >
                     <div>
-                      <p className="text-white">{profile.email ?? profile.id}</p>
+                      <input
+                        value={profile.name ?? ''}
+                        onChange={(event) =>
+                          handleAdminUpdateUser(profile, { name: event.target.value })
+                        }
+                        placeholder="Name"
+                        className="mb-1 w-full rounded-md bg-board-900 border border-board-700 px-2 py-1 text-xs"
+                      />
+                      <input
+                        value={profile.email ?? ''}
+                        onChange={(event) =>
+                          handleAdminUpdateUser(profile, { email: event.target.value })
+                        }
+                        placeholder="Email"
+                        className="w-full rounded-md bg-board-900 border border-board-700 px-2 py-1 text-xs"
+                      />
                       <p className="text-xs text-board-400">{profile.id}</p>
                     </div>
-                    <select
-                      value={profile.role}
-                      onChange={(event) =>
-                        handleRoleChange(profile, event.target.value as 'admin' | 'member')
-                      }
-                      className="rounded-lg bg-board-900 border border-board-700 px-3 py-1 text-xs"
-                    >
-                      <option value="admin">Admin</option>
-                      <option value="member">Member</option>
-                    </select>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="password"
+                        placeholder="New password"
+                        onBlur={(event) => {
+                          if (event.target.value) {
+                            handleAdminUpdateUser(profile, { password: event.target.value });
+                            event.target.value = '';
+                          }
+                        }}
+                        className="w-28 rounded-md bg-board-900 border border-board-700 px-2 py-1 text-xs"
+                      />
+                      <select
+                        value={profile.role}
+                        onChange={(event) =>
+                          handleRoleChange(profile, event.target.value as 'admin' | 'member')
+                        }
+                        className="rounded-lg bg-board-900 border border-board-700 px-3 py-1 text-xs"
+                      >
+                        <option value="admin">Admin</option>
+                        <option value="member">Member</option>
+                      </select>
+                      <button
+                        onClick={() => handleAdminDeleteUser(profile)}
+                        className="rounded-lg border border-red-500/60 px-3 py-1 text-xs text-red-300"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

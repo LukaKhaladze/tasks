@@ -5,6 +5,7 @@ export type ColorStatus = 'white' | 'red' | 'yellow' | 'green';
 export type Profile = {
   id: string;
   email: string | null;
+  name?: string | null;
   role: 'admin' | 'member';
 };
 
