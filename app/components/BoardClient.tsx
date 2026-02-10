@@ -364,7 +364,7 @@ export default function BoardClient({
   const runOptimistic = async (
     optimistic: () => void,
     rollback: () => void,
-    action: () => Promise<{ error: any }>
+    action: () => PromiseLike<{ error: any }>
   ) => {
     optimistic();
     setSaving(1);
