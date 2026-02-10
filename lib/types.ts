@@ -30,6 +30,7 @@ export type Task = {
   text: string;
   done: boolean;
   sort_order: number;
+  assigned_user_id?: string | null;
   created_at: string;
 };
 

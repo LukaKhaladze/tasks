@@ -222,6 +222,13 @@ function ProjectCard({
               className="h-4 w-4"
               disabled={!canEdit}
             />
+            {task.assigned_user_id && (
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-board-700 text-[10px] text-white">
+                {(profiles.find((p) => p.id === task.assigned_user_id)?.name ??
+                  profiles.find((p) => p.id === task.assigned_user_id)?.email ??
+                  'U')[0]?.toUpperCase()}
+              </span>
+            )}
             <input
               value={task.text}
               onChange={(event) => onUpdateTask({ ...task, text: event.target.value })}
@@ -231,6 +238,23 @@ function ProjectCard({
               )}
               disabled={!canEdit}
             />
+            <select
+              value={task.assigned_user_id ?? ''}
+              onChange={(event) =>
+                onUpdateTask({
+                  ...task,
+                  assigned_user_id: event.target.value || null
+                })
+              }
+              className="rounded-md bg-board-900 border border-board-700 px-1 py-1 text-[10px]"
+            >
+              <option value="">-</option>
+              {profiles.map((profile) => (
+                <option key={profile.id} value={profile.id}>
+                  {(profile.name ?? profile.email ?? profile.id).split(' ')[0]}
+                </option>
+              ))}
+            </select>
             {findFirstUrl(task.text) && (
               <a
                 href={findFirstUrl(task.text) as string}
@@ -548,6 +572,7 @@ export default function BoardClient({
       project_id: projectId,
       text,
       done: false,
+      assigned_user_id: project.assigned_user_id ?? null,
       sort_order: getProjectTasks(projectId).length,
       created_at: new Date().toISOString()
     };
@@ -569,7 +594,12 @@ export default function BoardClient({
       () =>
         supabase
           .from('tasks')
-          .update({ text: task.text, done: task.done, sort_order: task.sort_order })
+          .update({
+            text: task.text,
+            done: task.done,
+            sort_order: task.sort_order,
+            assigned_user_id: task.assigned_user_id ?? null
+          })
           .eq('id', task.id)
     );
   };
@@ -983,6 +1013,18 @@ export default function BoardClient({
           <p className="text-board-300">Welcome back, {user.email ?? 'User'}.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <a
+            href="/users"
+            className="rounded-xl border border-board-700 px-4 py-2 text-sm"
+          >
+            Users
+          </a>
+          <a
+            href="/stats"
+            className="rounded-xl border border-board-700 px-4 py-2 text-sm"
+          >
+            Stats
+          </a>
           <button
             onClick={createProject}
             className="rounded-xl bg-accent-500 px-4 py-2 text-sm font-semibold text-white"

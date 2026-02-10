@@ -22,12 +22,16 @@ function SortableTask({
   onToggle,
   onDelete,
   onEdit,
+  onAssign,
+  profiles,
   disabled
 }: {
   task: Task;
   onToggle: (task: Task) => void;
   onDelete: (task: Task) => void;
   onEdit: (task: Task, text: string) => void;
+  onAssign: (task: Task, userId: string | null) => void;
+  profiles: Profile[];
   disabled: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
@@ -59,6 +63,19 @@ function SortableTask({
           task.done ? 'line-through text-board-400' : ''
         }`}
       />
+      <select
+        value={task.assigned_user_id ?? ''}
+        disabled={disabled}
+        onChange={(event) => onAssign(task, event.target.value || null)}
+        className="rounded-md bg-board-900 border border-board-700 px-2 py-1 text-xs"
+      >
+        <option value="">Unassigned</option>
+        {profiles.map((profile) => (
+          <option key={profile.id} value={profile.id}>
+            {profile.name ?? profile.email ?? profile.id}
+          </option>
+        ))}
+      </select>
       <button
         type="button"
         {...attributes}
@@ -258,7 +275,11 @@ export default function ProjectModal({
                       onUpdateTask({ ...current, done: !current.done })
                     }
                     onEdit={(current, text) => onUpdateTask({ ...current, text })}
+                    onAssign={(current, userId) =>
+                      onUpdateTask({ ...current, assigned_user_id: userId })
+                    }
                     onDelete={onDeleteTask}
+                    profiles={profiles}
                   />
                 ))}
               </div>
