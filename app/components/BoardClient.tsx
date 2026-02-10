@@ -799,94 +799,101 @@ export default function BoardClient({
   const selectedProject = projects.find((project) => project.id === selectedProjectId) ?? null;
 
   useEffect(() => {
-    let authSub: ReturnType<typeof supabase.auth.onAuthStateChange> | null = null;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    const setupChannel = async (accessToken?: string) => {
+      if (!accessToken) return;
+      supabase.realtime.setAuth(accessToken);
+      if (channel) {
+        supabase.removeChannel(channel);
+        channel = null;
+      }
+      channel = supabase
+        .channel('realtime-taskboard')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'projects' },
+          (payload: RealtimePostgresChangesPayload<Project>) => {
+            const project = payload.new as Project;
+            if (payload.eventType === 'DELETE') {
+              setProjects((prev) => prev.filter((item) => item.id !== (payload.old as any).id));
+              return;
+            }
+            setProjects((prev) => {
+              const exists = prev.find((item) => item.id === project.id);
+              if (exists) {
+                return prev.map((item) => (item.id === project.id ? project : item));
+              }
+              return [...prev, project];
+            });
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'tasks' },
+          (payload: RealtimePostgresChangesPayload<Task>) => {
+            const task = payload.new as Task;
+            if (payload.eventType === 'DELETE') {
+              setTasks((prev) => prev.filter((item) => item.id !== (payload.old as any).id));
+              return;
+            }
+            setTasks((prev) => {
+              const exists = prev.find((item) => item.id === task.id);
+              if (exists) {
+                return prev.map((item) => (item.id === task.id ? task : item));
+              }
+              return [...prev, task];
+            });
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'profiles' },
+          (payload: RealtimePostgresChangesPayload<Profile>) => {
+            const profile = payload.new as Profile;
+            if (payload.eventType === 'DELETE') {
+              setProfiles((prev) => prev.filter((item) => item.id !== (payload.old as any).id));
+              return;
+            }
+            setProfiles((prev) => {
+              const exists = prev.find((item) => item.id === profile.id);
+              if (exists) {
+                return prev.map((item) => (item.id === profile.id ? profile : item));
+              }
+              return [...prev, profile];
+            });
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'user_settings' },
+          (payload: RealtimePostgresChangesPayload<UserSettings>) => {
+            if ((payload.new as UserSettings).user_id !== user.id) return;
+            setSettings(payload.new as UserSettings);
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'app_settings' },
+          (payload: RealtimePostgresChangesPayload<AppSettings>) => {
+            setAppConfig(payload.new as AppSettings);
+          }
+        )
+        .subscribe();
+    };
+
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session?.access_token) {
-        supabase.realtime.setAuth(data.session.access_token);
-      }
-    });
-    authSub = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.access_token) {
-        supabase.realtime.setAuth(session.access_token);
-      }
+      setupChannel(data.session?.access_token);
     });
 
-    const channel = supabase
-      .channel('realtime-taskboard')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'projects' },
-        (payload: RealtimePostgresChangesPayload<Project>) => {
-          const project = payload.new as Project;
-          if (payload.eventType === 'DELETE') {
-            setProjects((prev) => prev.filter((item) => item.id !== (payload.old as any).id));
-            return;
-          }
-          setProjects((prev) => {
-            const exists = prev.find((item) => item.id === project.id);
-            if (exists) {
-              return prev.map((item) => (item.id === project.id ? project : item));
-            }
-            return [...prev, project];
-          });
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'tasks' },
-        (payload: RealtimePostgresChangesPayload<Task>) => {
-          const task = payload.new as Task;
-          if (payload.eventType === 'DELETE') {
-            setTasks((prev) => prev.filter((item) => item.id !== (payload.old as any).id));
-            return;
-          }
-          setTasks((prev) => {
-            const exists = prev.find((item) => item.id === task.id);
-            if (exists) {
-              return prev.map((item) => (item.id === task.id ? task : item));
-            }
-            return [...prev, task];
-          });
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'profiles' },
-        (payload: RealtimePostgresChangesPayload<Profile>) => {
-          const profile = payload.new as Profile;
-          if (payload.eventType === 'DELETE') {
-            setProfiles((prev) => prev.filter((item) => item.id !== (payload.old as any).id));
-            return;
-          }
-          setProfiles((prev) => {
-            const exists = prev.find((item) => item.id === profile.id);
-            if (exists) {
-              return prev.map((item) => (item.id === profile.id ? profile : item));
-            }
-            return [...prev, profile];
-          });
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'user_settings' },
-        (payload: RealtimePostgresChangesPayload<UserSettings>) => {
-          if ((payload.new as UserSettings).user_id !== user.id) return;
-          setSettings(payload.new as UserSettings);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'app_settings' },
-        (payload: RealtimePostgresChangesPayload<AppSettings>) => {
-          setAppConfig(payload.new as AppSettings);
-        }
-      )
-      .subscribe();
+    const {
+      data: { subscription }
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setupChannel(session?.access_token);
+    });
 
     return () => {
-      supabase.removeChannel(channel);
-      authSub?.data?.subscription.unsubscribe();
+      if (channel) supabase.removeChannel(channel);
+      subscription.unsubscribe();
     };
   }, [supabase, user.id]);
 
