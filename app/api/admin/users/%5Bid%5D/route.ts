@@ -16,22 +16,11 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  if (profile?.role !== 'admin') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
-
   const body = await request.json();
   const { email, password, name, role } = body as {
     email?: string;
     password?: string;
     name?: string;
-    role?: 'admin' | 'member';
   };
 
   const admin = createAdminClient();
@@ -46,11 +35,8 @@ export async function PATCH(
     }
   }
 
-  if (name !== undefined || role) {
-    await admin
-      .from('profiles')
-      .update({ name: name ?? null, role })
-      .eq('id', params.id);
+  if (name !== undefined) {
+    await admin.from('profiles').update({ name: name ?? null }).eq('id', params.id);
   }
 
   return NextResponse.json({ ok: true });
@@ -67,16 +53,6 @@ export async function DELETE(
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  if (profile?.role !== 'admin') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   const admin = createAdminClient();

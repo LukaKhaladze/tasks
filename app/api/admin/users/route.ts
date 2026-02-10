@@ -13,22 +13,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  if (profile?.role !== 'admin') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
-
   const body = await request.json();
   const { email, password, name, role } = body as {
     email: string;
     password?: string;
     name?: string;
-    role?: 'admin' | 'member';
   };
 
   if (!email) {
@@ -46,10 +35,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error?.message ?? 'Create user failed' }, { status: 400 });
   }
 
-  await admin
-    .from('profiles')
-    .update({ name: name ?? null, role: role ?? 'member' })
-    .eq('id', data.user.id);
+  await admin.from('profiles').update({ name: name ?? null }).eq('id', data.user.id);
 
   return NextResponse.json({ id: data.user.id });
 }

@@ -31,6 +31,11 @@ const columns: { id: ColumnId; label: string }[] = [
 
 const colorOptions: Project['color_status'][] = ['white', 'red', 'yellow', 'green'];
 
+const findFirstUrl = (value: string) => {
+  const match = value.match(/https?:\/\/[^\s]+/);
+  return match ? match[0] : null;
+};
+
 const colorClasses: Record<Project['color_status'], string> = {
   white: 'border-board-600 text-board-200',
   red: 'border-red-400/60 text-red-200',
@@ -112,28 +117,46 @@ function ProjectCard({
             value={draftTitle}
             disabled={!canEdit}
             onChange={(event) => setDraftTitle(event.target.value)}
-            onBlur={() =>
-              onUpdate({
-                ...project,
-                title: draftTitle.trim() || project.title
-              })
-            }
+            onBlur={() => {
+              const nextTitle = draftTitle.trim();
+              if (!nextTitle) {
+                setDraftTitle(project.title);
+                return;
+              }
+              if (nextTitle !== project.title) {
+                onUpdate({
+                  ...project,
+                  title: nextTitle
+                });
+              }
+            }}
             className="w-full bg-transparent text-sm font-semibold text-white outline-none"
           />
           <textarea
             value={draftDescription}
             disabled={!canEdit}
             onChange={(event) => setDraftDescription(event.target.value)}
-            onBlur={() =>
+            onBlur={() => {
+              const nextDescription = draftDescription.trim();
               onUpdate({
                 ...project,
-                description: draftDescription.trim() || null
-              })
-            }
+                description: nextDescription || null
+              });
+            }}
             rows={2}
             className="w-full resize-none bg-transparent text-xs text-board-300 outline-none"
             placeholder="Description"
           />
+          {findFirstUrl(draftDescription) && (
+            <a
+              href={findFirstUrl(draftDescription) as string}
+              target="_blank"
+              rel="noreferrer"
+              className="text-[10px] text-accent-400 underline"
+            >
+              Open link
+            </a>
+          )}
         </div>
         <div className="flex flex-col items-end gap-2">
           <button
@@ -208,6 +231,16 @@ function ProjectCard({
               )}
               disabled={!canEdit}
             />
+            {findFirstUrl(task.text) && (
+              <a
+                href={findFirstUrl(task.text) as string}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[10px] text-accent-400 underline"
+              >
+                link
+              </a>
+            )}
             <button
               onClick={() => onDeleteTask(task)}
               disabled={!canEdit}
@@ -234,7 +267,7 @@ function ProjectCard({
             className="rounded-lg bg-accent-500 px-2 text-xs text-white"
             disabled={!canEdit}
           >
-            Add
+            +
           </button>
         </div>
       </div>
@@ -271,8 +304,6 @@ export default function BoardClient({
   const [dueFilter, setDueFilter] = useState<'all' | 'today' | 'soon' | 'overdue'>(
     'all'
   );
-  const [pinnedOnly, setPinnedOnly] = useState(false);
-  const [sortBy, setSortBy] = useState<'default' | 'deadline' | 'updated'>('default');
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Project | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -280,7 +311,6 @@ export default function BoardClient({
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserName, setNewUserName] = useState('');
-  const [newUserRole, setNewUserRole] = useState<'admin' | 'member'>('member');
 
   const currentProfile = useMemo(
     () => profiles.find((profile) => profile.id === user.id),
@@ -333,7 +363,6 @@ export default function BoardClient({
 
   const filteredProjects = useMemo(() => {
     return projects.filter((project) => {
-      if (pinnedOnly && !project.pinned) return false;
       if (filterUser && project.assigned_user_id !== filterUser) return false;
       if (filterColor && project.color_status !== filterColor) return false;
       const status = dueStatus(project);
@@ -351,7 +380,7 @@ export default function BoardClient({
       }
       return true;
     });
-  }, [projects, pinnedOnly, filterUser, filterColor, dueFilter, search, dueStatus, getProjectTasks]);
+  }, [projects, filterUser, filterColor, dueFilter, search, dueStatus, getProjectTasks]);
 
   const projectsByColumn = useMemo(() => {
     const map = new Map<ColumnId, Project[]>();
@@ -360,22 +389,11 @@ export default function BoardClient({
       map.get(project.column)?.push(project);
     });
     map.forEach((list, column) => {
-      list.sort((a, b) => {
-        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
-        if (sortBy === 'deadline') {
-          if (!a.deadline) return 1;
-          if (!b.deadline) return -1;
-          return a.deadline.localeCompare(b.deadline);
-        }
-        if (sortBy === 'updated') {
-          return b.updated_at.localeCompare(a.updated_at);
-        }
-        return a.sort_order - b.sort_order;
-      });
+      list.sort((a, b) => a.sort_order - b.sort_order);
       map.set(column, list);
     });
     return map;
-  }, [filteredProjects, sortBy]);
+  }, [filteredProjects]);
 
   const counters = useMemo(() => {
     const byColumn: Record<string, number> = {};
@@ -659,27 +677,13 @@ export default function BoardClient({
     );
   };
 
-  const handleRoleChange = async (profile: Profile, role: 'admin' | 'member') => {
-    const previous = profiles;
-    const next = profiles.map((item) =>
-      item.id === profile.id ? { ...item, role } : item
-    );
-    await runOptimistic(
-      () => setProfiles(next),
-      () => setProfiles(previous),
-      () => supabase.from('profiles').update({ role }).eq('id', profile.id)
-    );
-  };
-
   const handleAdminUpdateUser = async (
     profile: Profile,
-    updates: { email?: string; name?: string; password?: string; role?: 'admin' | 'member' }
+    updates: { email?: string; name?: string; password?: string }
   ) => {
     const previous = profiles;
     const next = profiles.map((item) =>
-      item.id === profile.id
-        ? { ...item, ...updates, role: updates.role ?? item.role }
-        : item
+      item.id === profile.id ? { ...item, ...updates } : item
     );
     await runOptimistic(
       () => setProfiles(next),
@@ -712,8 +716,7 @@ export default function BoardClient({
           body: JSON.stringify({
             email: newUserEmail,
             password: newUserPassword || undefined,
-            name: newUserName || undefined,
-            role: newUserRole
+            name: newUserName || undefined
           })
         });
         if (!res.ok) {
@@ -726,14 +729,12 @@ export default function BoardClient({
           {
             id,
             email: newUserEmail,
-            name: newUserName || null,
-            role: newUserRole
+            name: newUserName || null
           }
         ]);
         setNewUserEmail('');
         setNewUserPassword('');
         setNewUserName('');
-        setNewUserRole('member');
         return { error: null } as any;
       }
     );
@@ -1047,43 +1048,12 @@ export default function BoardClient({
             <option value="soon">Due soon</option>
             <option value="overdue">Overdue</option>
           </select>
-          <div className="flex gap-2">
-            <select
-              value={sortBy}
-              onChange={(event) =>
-                setSortBy(event.target.value as 'default' | 'deadline' | 'updated')
-              }
-              className="flex-1 rounded-lg bg-board-850 border border-board-700 px-3 py-2 text-sm"
-            >
-              <option value="default">Sort default</option>
-              <option value="deadline">Deadline asc</option>
-              <option value="updated">Updated desc</option>
-            </select>
-            <button
-              onClick={() => setPinnedOnly((prev) => !prev)}
-              className={clsx(
-                'rounded-lg border border-board-700 px-3 py-2 text-sm',
-                pinnedOnly && 'bg-accent-500 text-white'
-              )}
-            >
-              Pinned
-            </button>
-          </div>
+          <div className="flex gap-2" />
         </div>
         <div className="mt-4 flex flex-wrap gap-4 text-xs text-board-300">
           {columns.map((column) => (
             <span key={column.id}>
               {column.label}: {counters.byColumn[column.id] ?? 0}
-            </span>
-          ))}
-          {colorOptions.map((color) => (
-            <span key={color}>
-              {color}: {counters.byColor[color] ?? 0}
-            </span>
-          ))}
-          {profiles.map((profile) => (
-            <span key={profile.id}>
-              {profile.email ?? profile.id}: {counters.byUser[profile.id] ?? 0}
             </span>
           ))}
         </div>
@@ -1103,20 +1073,12 @@ export default function BoardClient({
                 className="mt-2 w-full rounded-lg bg-board-850 border border-board-700 px-3 py-2 text-sm"
               />
             </div>
-            {isAdmin && (
-              <div>
-                <h3 className="text-sm font-semibold">Allow All Members To Edit</h3>
-                <button
-                  onClick={() => handleAllowAllEdits(!appConfig.allow_all_edits)}
-                  className={clsx(
-                    'mt-2 w-full rounded-lg border border-board-700 px-3 py-2 text-sm',
-                    appConfig.allow_all_edits && 'bg-accent-500 text-white'
-                  )}
-                >
-                  {appConfig.allow_all_edits ? 'Enabled' : 'Disabled'}
-                </button>
-              </div>
-            )}
+            <div>
+              <h3 className="text-sm font-semibold">Editing Access</h3>
+              <p className="mt-2 text-xs text-board-400">
+                All users can edit projects and tasks.
+              </p>
+            </div>
           </div>
           <div className="mt-4">
             <button
@@ -1125,13 +1087,8 @@ export default function BoardClient({
             >
               {showUsers ? 'Hide user manager' : 'Manage users'}
             </button>
-            {!isAdmin && (
-              <p className="mt-2 text-xs text-board-400">
-                Only admins can manage users.
-              </p>
-            )}
           </div>
-          {isAdmin && showUsers && (
+          {showUsers && (
             <div className="mt-6">
               <h3 className="text-sm font-semibold mb-2">Manage Users</h3>
               <div className="rounded-lg border border-board-700 bg-board-850 p-3 mb-4">
@@ -1155,19 +1112,9 @@ export default function BoardClient({
                     className="rounded-lg bg-board-900 border border-board-700 px-3 py-2 text-sm"
                   />
                   <div className="flex gap-2">
-                    <select
-                      value={newUserRole}
-                      onChange={(event) =>
-                        setNewUserRole(event.target.value as 'admin' | 'member')
-                      }
-                      className="flex-1 rounded-lg bg-board-900 border border-board-700 px-3 py-2 text-sm"
-                    >
-                      <option value="member">Member</option>
-                      <option value="admin">Admin</option>
-                    </select>
                     <button
                       onClick={handleAdminCreateUser}
-                      className="rounded-lg bg-accent-500 px-3 text-sm font-semibold text-white"
+                      className="w-full rounded-lg bg-accent-500 px-3 text-sm font-semibold text-white"
                     >
                       Add
                     </button>
@@ -1211,16 +1158,6 @@ export default function BoardClient({
                         }}
                         className="w-28 rounded-md bg-board-900 border border-board-700 px-2 py-1 text-xs"
                       />
-                      <select
-                        value={profile.role}
-                        onChange={(event) =>
-                          handleRoleChange(profile, event.target.value as 'admin' | 'member')
-                        }
-                        className="rounded-lg bg-board-900 border border-board-700 px-3 py-1 text-xs"
-                      >
-                        <option value="admin">Admin</option>
-                        <option value="member">Member</option>
-                      </select>
                       <button
                         onClick={() => handleAdminDeleteUser(profile)}
                         className="rounded-lg border border-red-500/60 px-3 py-1 text-xs text-red-300"
