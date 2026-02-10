@@ -92,7 +92,13 @@ function SortableTask({
                 : color === 'yellow'
                 ? 'border-yellow-400 bg-yellow-400'
                 : 'border-green-400 bg-green-500'
-            } ${task.color_status === color ? 'ring-2 ring-accent-400' : ''}`}\n            type=\"button\"\n            title={color}\n            disabled={disabled}\n          />\n        ))}\n      </div>
+            } ${task.color_status === color ? 'ring-2 ring-accent-400' : ''}`}
+            type="button"
+            title={color}
+            disabled={disabled}
+          />
+        ))}
+      </div>
       <button
         type="button"
         {...attributes}
