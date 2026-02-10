@@ -64,8 +64,8 @@ function ProjectCard({
   assigned,
   profiles,
   dueLabel,
-  onCycleColor,
   onDelete,
+  onMove,
   onUpdate,
   onAddTask,
   onUpdateTask,
@@ -77,8 +77,8 @@ function ProjectCard({
   assigned: Profile | undefined;
   profiles: Profile[];
   dueLabel: string | null;
-  onCycleColor: () => void;
   onDelete: () => void;
+  onMove: (column: ColumnId) => void;
   onUpdate: (project: Project) => void;
   onAddTask: (text: string) => void;
   onUpdateTask: (task: Task) => void;
@@ -197,16 +197,18 @@ function ProjectCard({
         <span>· {doneCount}/{tasks.length} done</span>
       </div>
       <div className="mt-2 flex items-center gap-2 text-xs">
-        <button
-          onClick={onCycleColor}
+        <select
+          value={project.column}
+          onChange={(event) => onMove(event.target.value as ColumnId)}
+          className="rounded-lg border border-board-700 bg-board-900 px-2 py-1"
           disabled={!canEdit}
-          className={clsx(
-            'rounded-lg border border-board-700 px-2 py-1',
-            !canEdit && 'opacity-50 cursor-not-allowed'
-          )}
         >
-          Color
-        </button>
+          {columns.map((column) => (
+            <option key={column.id} value={column.id}>
+              {column.label}
+            </option>
+          ))}
+        </select>
       </div>
       {!canEdit && (
         <div className="mt-2 text-[11px] text-board-400">Read-only</div>
@@ -241,25 +243,19 @@ function ProjectCard({
               )}
               disabled={!canEdit}
             />
-            <div className="flex items-center gap-1">
-              {(['white', 'red', 'yellow', 'green'] as const).map((color) => (
-                <button
-                  key={color}
-                  onClick={() => onUpdateTask({ ...task, color_status: color })}
-                  className={clsx(
-                    'h-3 w-3 rounded-full border',
-                    color === 'white' && 'border-board-500 bg-white',
-                    color === 'red' && 'border-red-400 bg-red-500',
-                    color === 'yellow' && 'border-yellow-400 bg-yellow-400',
-                    color === 'green' && 'border-green-400 bg-green-500',
-                    task.color_status === color && 'ring-2 ring-accent-400'
-                  )}
-                  title={color}
-                  disabled={!canEdit}
-                  type="button"
-                />
-              ))}
-            </div>
+            <select
+              value={task.color_status ?? 'white'}
+              onChange={(event) =>
+                onUpdateTask({ ...task, color_status: event.target.value as Task['color_status'] })
+              }
+              className="rounded-md bg-board-900 border border-board-700 px-1 py-1 text-[10px]"
+              disabled={!canEdit}
+            >
+              <option value="white">⚪</option>
+              <option value="red">🔴</option>
+              <option value="yellow">🟡</option>
+              <option value="green">🟢</option>
+            </select>
             {findFirstUrl(task.text) && (
               <a
                 href={findFirstUrl(task.text) as string}
@@ -1251,8 +1247,8 @@ export default function BoardClient({
                           const status = dueStatus(project);
                           return status === 'none' ? null : status;
                         })()}
-                        onCycleColor={() => handleCycleColor(project)}
                         onDelete={() => setConfirmDelete(project)}
+                        onMove={(nextColumn) => handleMoveProject(project, nextColumn)}
                         onUpdate={(next) => handleUpdateProject(next)}
                         onAddTask={(text) => handleAddTask(project.id, text)}
                         onUpdateTask={(task) => handleUpdateTask(task)}

@@ -79,26 +79,17 @@ function SortableTask({
           </option>
         ))}
       </select>
-      <div className="flex items-center gap-1">
-        {(['white', 'red', 'yellow', 'green'] as const).map((color) => (
-          <button
-            key={color}
-            onClick={() => onColor(task, color)}
-            className={`h-3 w-3 rounded-full border ${
-              color === 'white'
-                ? 'border-board-500 bg-white'
-                : color === 'red'
-                ? 'border-red-400 bg-red-500'
-                : color === 'yellow'
-                ? 'border-yellow-400 bg-yellow-400'
-                : 'border-green-400 bg-green-500'
-            } ${task.color_status === color ? 'ring-2 ring-accent-400' : ''}`}
-            type="button"
-            title={color}
-            disabled={disabled}
-          />
-        ))}
-      </div>
+      <select
+        value={task.color_status ?? 'white'}
+        onChange={(event) => onColor(task, event.target.value as Task['color_status'])}
+        className="rounded-md bg-board-900 border border-board-700 px-2 py-1 text-xs"
+        disabled={disabled}
+      >
+        <option value="white">⚪</option>
+        <option value="red">🔴</option>
+        <option value="yellow">🟡</option>
+        <option value="green">🟢</option>
+      </select>
       <button
         type="button"
         {...attributes}
