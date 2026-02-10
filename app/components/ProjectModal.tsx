@@ -23,6 +23,7 @@ function SortableTask({
   onDelete,
   onEdit,
   onAssign,
+  onColor,
   profiles,
   disabled
 }: {
@@ -31,6 +32,7 @@ function SortableTask({
   onDelete: (task: Task) => void;
   onEdit: (task: Task, text: string) => void;
   onAssign: (task: Task, userId: string | null) => void;
+  onColor: (task: Task, color: Task['color_status']) => void;
   profiles: Profile[];
   disabled: boolean;
 }) {
@@ -55,11 +57,12 @@ function SortableTask({
           task.done ? 'bg-green-500 border-green-400' : 'border-board-600'
         }`}
       />
-      <input
+      <textarea
         value={task.text}
         disabled={disabled}
         onChange={(event) => onEdit(task, event.target.value)}
-        className={`flex-1 bg-transparent text-sm text-board-100 outline-none ${
+        rows={2}
+        className={`flex-1 resize-none bg-transparent text-sm text-board-100 outline-none ${
           task.done ? 'line-through text-board-400' : ''
         }`}
       />
@@ -72,10 +75,24 @@ function SortableTask({
         <option value="">Unassigned</option>
         {profiles.map((profile) => (
           <option key={profile.id} value={profile.id}>
-            {profile.name ?? profile.email ?? profile.id}
+            {(profile.name ?? profile.email ?? profile.id)[0]?.toUpperCase()}
           </option>
         ))}
       </select>
+      <div className="flex items-center gap-1">
+        {(['white', 'red', 'yellow', 'green'] as const).map((color) => (
+          <button
+            key={color}
+            onClick={() => onColor(task, color)}
+            className={`h-3 w-3 rounded-full border ${
+              color === 'white'
+                ? 'border-board-500 bg-white'
+                : color === 'red'
+                ? 'border-red-400 bg-red-500'
+                : color === 'yellow'
+                ? 'border-yellow-400 bg-yellow-400'
+                : 'border-green-400 bg-green-500'
+            } ${task.color_status === color ? 'ring-2 ring-accent-400' : ''}`}\n            type=\"button\"\n            title={color}\n            disabled={disabled}\n          />\n        ))}\n      </div>
       <button
         type="button"
         {...attributes}
@@ -277,6 +294,9 @@ export default function ProjectModal({
                     onEdit={(current, text) => onUpdateTask({ ...current, text })}
                     onAssign={(current, userId) =>
                       onUpdateTask({ ...current, assigned_user_id: userId })
+                    }
+                    onColor={(current, color) =>
+                      onUpdateTask({ ...current, color_status: color })
                     }
                     onDelete={onDeleteTask}
                     profiles={profiles}

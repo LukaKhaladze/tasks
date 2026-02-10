@@ -231,32 +231,35 @@ function ProjectCard({
                   'U')[0]?.toUpperCase()}
               </span>
             )}
-            <input
+            <textarea
               value={task.text}
               onChange={(event) => onUpdateTask({ ...task, text: event.target.value })}
+              rows={2}
               className={clsx(
-                'flex-1 bg-transparent text-xs outline-none',
+                'flex-1 resize-none bg-transparent text-xs outline-none',
                 task.done && 'line-through text-board-400'
               )}
               disabled={!canEdit}
             />
-            <select
-              value={task.assigned_user_id ?? ''}
-              onChange={(event) =>
-                onUpdateTask({
-                  ...task,
-                  assigned_user_id: event.target.value || null
-                })
-              }
-              className="rounded-md bg-board-900 border border-board-700 px-1 py-1 text-[10px]"
-            >
-              <option value="">-</option>
-              {profiles.map((profile) => (
-                <option key={profile.id} value={profile.id}>
-                  {(profile.name ?? profile.email ?? profile.id).split(' ')[0]}
-                </option>
+            <div className="flex items-center gap-1">
+              {(['white', 'red', 'yellow', 'green'] as const).map((color) => (
+                <button
+                  key={color}
+                  onClick={() => onUpdateTask({ ...task, color_status: color })}
+                  className={clsx(
+                    'h-3 w-3 rounded-full border',
+                    color === 'white' && 'border-board-500 bg-white',
+                    color === 'red' && 'border-red-400 bg-red-500',
+                    color === 'yellow' && 'border-yellow-400 bg-yellow-400',
+                    color === 'green' && 'border-green-400 bg-green-500',
+                    task.color_status === color && 'ring-2 ring-accent-400'
+                  )}
+                  title={color}
+                  disabled={!canEdit}
+                  type="button"
+                />
               ))}
-            </select>
+            </div>
             {findFirstUrl(task.text) && (
               <a
                 href={findFirstUrl(task.text) as string}
@@ -484,6 +487,7 @@ export default function BoardClient({
   };
 
   const handleUpdateProject = async (project: Project) => {
+    if (!project.title || !project.title.trim()) return;
     if (!canEdit(project)) return;
     const previous = projects;
     await runOptimistic(
@@ -575,6 +579,7 @@ export default function BoardClient({
       text,
       done: false,
       assigned_user_id: project.assigned_user_id ?? null,
+      color_status: 'white',
       sort_order: getProjectTasks(projectId).length,
       created_at: new Date().toISOString()
     };
@@ -600,7 +605,8 @@ export default function BoardClient({
             text: task.text,
             done: task.done,
             sort_order: task.sort_order,
-            assigned_user_id: task.assigned_user_id ?? null
+            assigned_user_id: task.assigned_user_id ?? null,
+            color_status: task.color_status ?? 'white'
           })
           .eq('id', task.id)
     );

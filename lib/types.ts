@@ -31,6 +31,7 @@ export type Task = {
   done: boolean;
   sort_order: number;
   assigned_user_id?: string | null;
+  color_status?: ColorStatus;
   created_at: string;
 };
 
