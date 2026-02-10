@@ -903,6 +903,35 @@ export default function BoardClient({
     };
   }, [supabase, user.id]);
 
+  useEffect(() => {
+    let active = true;
+    const poll = async () => {
+      const [projectsRes, tasksRes, profilesRes, settingsRes, appRes] =
+        await Promise.all([
+          supabase.from('projects').select('*'),
+          supabase.from('tasks').select('*'),
+          supabase.from('profiles').select('*'),
+          supabase.from('user_settings').select('*').eq('user_id', user.id).maybeSingle(),
+          supabase.from('app_settings').select('*').eq('id', 1).maybeSingle()
+        ]);
+
+      if (!active) return;
+
+      if (projectsRes.data) setProjects(projectsRes.data as Project[]);
+      if (tasksRes.data) setTasks(tasksRes.data as Task[]);
+      if (profilesRes.data) setProfiles(profilesRes.data as Profile[]);
+      if (settingsRes.data) setSettings(settingsRes.data as UserSettings);
+      if (appRes.data) setAppConfig(appRes.data as AppSettings);
+    };
+
+    poll();
+    const interval = setInterval(poll, 3000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [supabase, user.id]);
+
   return (
     <div className="min-h-screen px-6 py-6">
       <SavingIndicator saving={savingCount > 0} />
