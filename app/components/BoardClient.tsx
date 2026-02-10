@@ -44,7 +44,7 @@ function ColumnDrop({ id, children }: { id: ColumnId; children: React.ReactNode 
     <div
       ref={setNodeRef}
       className={clsx(
-        'rounded-2xl border border-board-700 bg-board-900/70 p-3 min-h-[260px] transition',
+        'rounded-2xl border border-board-700 bg-board-900/70 p-2 min-h-[220px] transition',
         isOver && 'border-accent-500/70 shadow-glow'
       )}
     >
@@ -58,11 +58,8 @@ function ProjectCard({
   tasks,
   assigned,
   dueLabel,
-  onPin,
   onCycleColor,
   onDelete,
-  onDuplicate,
-  onMove,
   onUpdate,
   onAddTask,
   onUpdateTask,
@@ -73,11 +70,8 @@ function ProjectCard({
   tasks: Task[];
   assigned: Profile | undefined;
   dueLabel: string | null;
-  onPin: () => void;
   onCycleColor: () => void;
   onDelete: () => void;
-  onDuplicate: () => void;
-  onMove: (column: ColumnId) => void;
   onUpdate: (project: Project) => void;
   onAddTask: (text: string) => void;
   onUpdateTask: (task: Task) => void;
@@ -107,7 +101,7 @@ function ProjectCard({
       ref={setNodeRef}
       style={style}
       className={clsx(
-        'rounded-xl border bg-board-850 px-4 py-3 shadow-sm transition',
+        'rounded-xl border bg-board-850 px-3 py-2 shadow-sm transition',
         colorClasses[project.color_status],
         isDragging && 'opacity-70'
       )}
@@ -141,16 +135,26 @@ function ProjectCard({
             placeholder="Description"
           />
         </div>
-        <button
-          type="button"
-          {...attributes}
-          {...listeners}
-          className="text-board-400 text-xs"
-        >
-          drag
-        </button>
+        <div className="flex flex-col items-end gap-2">
+          <button
+            type="button"
+            onClick={onDelete}
+            className="text-red-300 text-xs"
+            title="Delete"
+          >
+            X
+          </button>
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            className="text-board-400 text-xs"
+          >
+            drag
+          </button>
+        </div>
       </div>
-      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-board-300">
+      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-board-300">
         {project.deadline && <span>Due {project.deadline}</span>}
         {dueLabel && (
           <span
@@ -167,17 +171,7 @@ function ProjectCard({
         {assigned?.email && <span>· {assigned.email}</span>}
         <span>· {doneCount}/{tasks.length} done</span>
       </div>
-      <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-        <button
-          onClick={onPin}
-          disabled={!canEdit}
-          className={clsx(
-            'rounded-lg border border-board-700 px-2 py-1',
-            !canEdit && 'opacity-50 cursor-not-allowed'
-          )}
-        >
-          {project.pinned ? 'Unpin' : 'Pin'}
-        </button>
+      <div className="mt-2 flex items-center gap-2 text-xs">
         <button
           onClick={onCycleColor}
           disabled={!canEdit}
@@ -188,43 +182,11 @@ function ProjectCard({
         >
           Color
         </button>
-        <button
-          onClick={onDuplicate}
-          disabled={!canEdit}
-          className={clsx(
-            'rounded-lg border border-board-700 px-2 py-1',
-            !canEdit && 'opacity-50 cursor-not-allowed'
-          )}
-        >
-          Duplicate
-        </button>
-        <select
-          value={project.column}
-          onChange={(event) => onMove(event.target.value as ColumnId)}
-          className="rounded-lg border border-board-700 bg-board-900 px-2 py-1"
-          disabled={!canEdit}
-        >
-          {columns.map((column) => (
-            <option key={column.id} value={column.id}>
-              {column.label}
-            </option>
-          ))}
-        </select>
-        <button
-          onClick={onDelete}
-          disabled={!canEdit}
-          className={clsx(
-            'rounded-lg border border-red-400/60 px-2 py-1 text-red-300',
-            !canEdit && 'opacity-50 cursor-not-allowed'
-          )}
-        >
-          Delete
-        </button>
       </div>
       {!canEdit && (
         <div className="mt-2 text-[11px] text-board-400">Read-only</div>
       )}
-      <div className="mt-3 space-y-2">
+      <div className="mt-2 space-y-2">
         {previewTasks.map((task) => (
           <div
             key={task.id}
@@ -314,6 +276,7 @@ export default function BoardClient({
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Project | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showUsers, setShowUsers] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserName, setNewUserName] = useState('');
@@ -1127,7 +1090,7 @@ export default function BoardClient({
       </section>
 
       {showSettings && (
-        <section className="mt-4 rounded-2xl border border-board-700 bg-board-900/80 p-4">
+        <section className="mt-4 rounded-2xl border border-board-700 bg-board-900/80 p-3">
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <div>
               <h3 className="text-sm font-semibold">Due Soon Days</h3>
@@ -1155,7 +1118,20 @@ export default function BoardClient({
               </div>
             )}
           </div>
-          {isAdmin && (
+          <div className="mt-4">
+            <button
+              onClick={() => setShowUsers((prev) => !prev)}
+              className="rounded-lg border border-board-700 px-3 py-2 text-sm"
+            >
+              {showUsers ? 'Hide user manager' : 'Manage users'}
+            </button>
+            {!isAdmin && (
+              <p className="mt-2 text-xs text-board-400">
+                Only admins can manage users.
+              </p>
+            )}
+          </div>
+          {isAdmin && showUsers && (
             <div className="mt-6">
               <h3 className="text-sm font-semibold mb-2">Manage Users</h3>
               <div className="rounded-lg border border-board-700 bg-board-850 p-3 mb-4">
@@ -1276,7 +1252,7 @@ export default function BoardClient({
                   items={columnProjects.map((project) => project.id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  <div className="space-y-3">
+                <div className="space-y-2">
                     {columnProjects.map((project) => (
                       <ProjectCard
                         key={project.id}
@@ -1287,11 +1263,8 @@ export default function BoardClient({
                           const status = dueStatus(project);
                           return status === 'none' ? null : status;
                         })()}
-                        onPin={() => handlePinProject(project)}
                         onCycleColor={() => handleCycleColor(project)}
                         onDelete={() => setConfirmDelete(project)}
-                        onDuplicate={() => handleDuplicateProject(project)}
-                        onMove={(nextColumn) => handleMoveProject(project, nextColumn)}
                         onUpdate={(next) => handleUpdateProject(next)}
                         onAddTask={(text) => handleAddTask(project.id, text)}
                         onUpdateTask={(task) => handleUpdateTask(task)}
