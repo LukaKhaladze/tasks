@@ -6,7 +6,7 @@ export type Profile = {
   id: string;
   email: string | null;
   name?: string | null;
-  role: 'admin' | 'member';
+  role?: 'admin' | 'member';
 };
 
 export type Project = {
