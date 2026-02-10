@@ -32,7 +32,7 @@ create table if not exists public.projects (
   id uuid primary key default gen_random_uuid(),
   title text not null,
   description text,
-  column text not null check (column in ('new','current','support','financial')),
+  "column" text not null check ("column" in ('new','current','support','financial')),
   color_status text not null default 'white' check (color_status in ('white','red','yellow','green')),
   deadline date,
   assigned_user_id uuid references auth.users(id),
@@ -43,7 +43,7 @@ create table if not exists public.projects (
   updated_at timestamptz not null default now()
 );
 
-create index if not exists projects_column_sort_idx on public.projects (column, sort_order);
+create index if not exists projects_column_sort_idx on public.projects ("column", sort_order);
 create index if not exists projects_assigned_idx on public.projects (assigned_user_id);
 create index if not exists projects_deadline_idx on public.projects (deadline);
 create index if not exists projects_updated_idx on public.projects (updated_at desc);
