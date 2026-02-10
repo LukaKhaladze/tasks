@@ -62,6 +62,7 @@ function ProjectCard({
   project,
   tasks,
   assigned,
+  profiles,
   dueLabel,
   onCycleColor,
   onDelete,
@@ -74,6 +75,7 @@ function ProjectCard({
   project: Project;
   tasks: Task[];
   assigned: Profile | undefined;
+  profiles: Profile[];
   dueLabel: string | null;
   onCycleColor: () => void;
   onDelete: () => void;
@@ -1238,6 +1240,7 @@ export default function BoardClient({
                         project={project}
                         tasks={getProjectTasks(project.id)}
                         assigned={profiles.find((profile) => profile.id === project.assigned_user_id)}
+                        profiles={profiles}
                         dueLabel={(() => {
                           const status = dueStatus(project);
                           return status === 'none' ? null : status;
