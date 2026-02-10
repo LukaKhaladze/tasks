@@ -11,7 +11,7 @@ import {
 import { SortableContext, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { createClient } from '@/lib/supabase/client';
-import type { PostgresChangePayload } from '@supabase/supabase-js';
+import type { RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 import { ColumnId, Project, Task, Profile, UserSettings, AppSettings } from '@/lib/types';
 import { startOfDay, toDateOnly, isBefore, isSameDay, diffInDays } from '@/lib/utils/date';
 import Toast, { ToastMessage } from '@/app/components/Toast';
@@ -714,7 +714,7 @@ export default function BoardClient({
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'projects' },
-        (payload: PostgresChangePayload<Project>) => {
+        (payload: RealtimePostgresChangesPayload<Project>) => {
           const project = payload.new as Project;
           if (payload.eventType === 'DELETE') {
             setProjects((prev) => prev.filter((item) => item.id !== (payload.old as any).id));
@@ -732,7 +732,7 @@ export default function BoardClient({
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'tasks' },
-        (payload: PostgresChangePayload<Task>) => {
+        (payload: RealtimePostgresChangesPayload<Task>) => {
           const task = payload.new as Task;
           if (payload.eventType === 'DELETE') {
             setTasks((prev) => prev.filter((item) => item.id !== (payload.old as any).id));
@@ -750,7 +750,7 @@ export default function BoardClient({
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'profiles' },
-        (payload: PostgresChangePayload<Profile>) => {
+        (payload: RealtimePostgresChangesPayload<Profile>) => {
           const profile = payload.new as Profile;
           if (payload.eventType === 'DELETE') {
             setProfiles((prev) => prev.filter((item) => item.id !== (payload.old as any).id));
@@ -768,7 +768,7 @@ export default function BoardClient({
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'user_settings' },
-        (payload: PostgresChangePayload<UserSettings>) => {
+        (payload: RealtimePostgresChangesPayload<UserSettings>) => {
           if ((payload.new as UserSettings).user_id !== user.id) return;
           setSettings(payload.new as UserSettings);
         }
@@ -776,7 +776,7 @@ export default function BoardClient({
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'app_settings' },
-        (payload: PostgresChangePayload<AppSettings>) => {
+        (payload: RealtimePostgresChangesPayload<AppSettings>) => {
           setAppConfig(payload.new as AppSettings);
         }
       )
