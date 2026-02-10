@@ -709,6 +709,18 @@ export default function BoardClient({
   const selectedProject = projects.find((project) => project.id === selectedProjectId) ?? null;
 
   useEffect(() => {
+    let authSub: ReturnType<typeof supabase.auth.onAuthStateChange> | null = null;
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.access_token) {
+        supabase.realtime.setAuth(data.session.access_token);
+      }
+    });
+    authSub = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.access_token) {
+        supabase.realtime.setAuth(session.access_token);
+      }
+    });
+
     const channel = supabase
       .channel('realtime-taskboard')
       .on(
@@ -784,6 +796,7 @@ export default function BoardClient({
 
     return () => {
       supabase.removeChannel(channel);
+      authSub?.data?.subscription.unsubscribe();
     };
   }, [supabase, user.id]);
 
