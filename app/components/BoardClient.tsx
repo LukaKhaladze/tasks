@@ -58,26 +58,30 @@ function ProjectCard({
   tasks,
   assigned,
   dueLabel,
-  onOpen,
   onPin,
   onCycleColor,
   onDelete,
   onDuplicate,
   onMove,
-  onMarkAllDone,
+  onUpdate,
+  onAddTask,
+  onUpdateTask,
+  onDeleteTask,
   canEdit
 }: {
   project: Project;
   tasks: Task[];
   assigned: Profile | undefined;
   dueLabel: string | null;
-  onOpen: () => void;
   onPin: () => void;
   onCycleColor: () => void;
   onDelete: () => void;
   onDuplicate: () => void;
   onMove: (column: ColumnId) => void;
-  onMarkAllDone: () => void;
+  onUpdate: (project: Project) => void;
+  onAddTask: (text: string) => void;
+  onUpdateTask: (task: Task) => void;
+  onDeleteTask: (task: Task) => void;
   canEdit: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -86,7 +90,17 @@ function ProjectCard({
     transform: CSS.Transform.toString(transform),
     transition
   };
+  const [draftTitle, setDraftTitle] = useState(project.title);
+  const [draftDescription, setDraftDescription] = useState(project.description ?? '');
+  const [newTask, setNewTask] = useState('');
+
+  useEffect(() => {
+    setDraftTitle(project.title);
+    setDraftDescription(project.description ?? '');
+  }, [project.title, project.description]);
+
   const doneCount = tasks.filter((task) => task.done).length;
+  const previewTasks = tasks.slice(0, 3);
 
   return (
     <div
@@ -99,16 +113,34 @@ function ProjectCard({
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <button
-          type="button"
-          onClick={onOpen}
-          className="text-left"
-        >
-          <h4 className="text-sm font-semibold text-white">{project.title}</h4>
-          <p className="text-xs text-board-300 line-clamp-2">
-            {project.description || 'No description'}
-          </p>
-        </button>
+        <div className="flex-1 space-y-1">
+          <input
+            value={draftTitle}
+            disabled={!canEdit}
+            onChange={(event) => setDraftTitle(event.target.value)}
+            onBlur={() =>
+              onUpdate({
+                ...project,
+                title: draftTitle.trim() || project.title
+              })
+            }
+            className="w-full bg-transparent text-sm font-semibold text-white outline-none"
+          />
+          <textarea
+            value={draftDescription}
+            disabled={!canEdit}
+            onChange={(event) => setDraftDescription(event.target.value)}
+            onBlur={() =>
+              onUpdate({
+                ...project,
+                description: draftDescription.trim() || null
+              })
+            }
+            rows={2}
+            className="w-full resize-none bg-transparent text-xs text-board-300 outline-none"
+            placeholder="Description"
+          />
+        </div>
         <button
           type="button"
           {...attributes}
@@ -166,16 +198,6 @@ function ProjectCard({
         >
           Duplicate
         </button>
-        <button
-          onClick={onMarkAllDone}
-          disabled={!canEdit}
-          className={clsx(
-            'rounded-lg border border-board-700 px-2 py-1',
-            !canEdit && 'opacity-50 cursor-not-allowed'
-          )}
-        >
-          Done all
-        </button>
         <select
           value={project.column}
           onChange={(event) => onMove(event.target.value as ColumnId)}
@@ -202,6 +224,58 @@ function ProjectCard({
       {!canEdit && (
         <div className="mt-2 text-[11px] text-board-400">Read-only</div>
       )}
+      <div className="mt-3 space-y-2">
+        {previewTasks.map((task) => (
+          <div
+            key={task.id}
+            className="flex items-center gap-2 rounded-lg border border-board-700 bg-board-900/60 px-2 py-1"
+          >
+            <input
+              type="checkbox"
+              checked={task.done}
+              onChange={() => onUpdateTask({ ...task, done: !task.done })}
+              className="h-4 w-4"
+              disabled={!canEdit}
+            />
+            <input
+              value={task.text}
+              onChange={(event) => onUpdateTask({ ...task, text: event.target.value })}
+              className={clsx(
+                'flex-1 bg-transparent text-xs outline-none',
+                task.done && 'line-through text-board-400'
+              )}
+              disabled={!canEdit}
+            />
+            <button
+              onClick={() => onDeleteTask(task)}
+              disabled={!canEdit}
+              className="text-red-400 text-[10px]"
+            >
+              del
+            </button>
+          </div>
+        ))}
+        <div className="flex gap-2">
+          <input
+            value={newTask}
+            onChange={(event) => setNewTask(event.target.value)}
+            placeholder="Add task"
+            className="flex-1 rounded-lg bg-board-900 border border-board-700 px-2 py-1 text-xs"
+            disabled={!canEdit}
+          />
+          <button
+            onClick={() => {
+              if (!newTask.trim()) return;
+              onAddTask(newTask.trim());
+              setNewTask('');
+            }}
+            className="rounded-lg bg-accent-500 px-2 text-xs text-white"
+            disabled={!canEdit}
+          >
+            Add
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -354,8 +428,7 @@ export default function BoardClient({
     return { byColumn, byColor, byUser };
   }, [filteredProjects]);
 
-  const canEdit = (project: Project) =>
-    isAdmin || appConfig.allow_all_edits || project.assigned_user_id === user.id;
+  const canEdit = (_project: Project) => true;
 
   const updateProjectState = (next: Project) => {
     setProjects((prev) => prev.map((project) => (project.id === next.id ? next : project)));
@@ -1220,7 +1293,10 @@ export default function BoardClient({
                         onDelete={() => setConfirmDelete(project)}
                         onDuplicate={() => handleDuplicateProject(project)}
                         onMove={(nextColumn) => handleMoveProject(project, nextColumn)}
-                        onMarkAllDone={() => handleMarkAllTasksDone(project.id)}
+                        onUpdate={(next) => handleUpdateProject(next)}
+                        onAddTask={(text) => handleAddTask(project.id, text)}
+                        onUpdateTask={(task) => handleUpdateTask(task)}
+                        onDeleteTask={(task) => handleDeleteTask(task)}
                         canEdit={canEdit(project)}
                       />
                     ))}
