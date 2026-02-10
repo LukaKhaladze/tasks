@@ -802,7 +802,13 @@ export default function BoardClient({
     let channel: ReturnType<typeof supabase.channel> | null = null;
     const setupChannel = async (accessToken?: string) => {
       if (!accessToken) return;
+      try {
+        supabase.realtime.disconnect();
+      } catch {
+        // no-op
+      }
       supabase.realtime.setAuth(accessToken);
+      await supabase.realtime.connect();
       if (channel) {
         supabase.removeChannel(channel);
         channel = null;
