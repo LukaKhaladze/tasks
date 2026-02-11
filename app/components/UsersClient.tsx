@@ -19,6 +19,7 @@ export default function UsersClient({
   const supabase = createClient();
   const [profiles, setProfiles] = useState<Profile[]>(initialProfiles);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [passwordDrafts, setPasswordDrafts] = useState<Record<string, string>>({});
 
   const addToast = (message: string, type: ToastMessage['type']) => {
     setToasts((prev) => [
@@ -155,14 +156,27 @@ export default function UsersClient({
                   <input
                     type="password"
                     placeholder="New password"
-                    onBlur={(event) => {
-                      if (event.target.value) {
-                        updateUser(profile, { password: event.target.value });
-                        event.target.value = '';
-                      }
-                    }}
+                    value={passwordDrafts[profile.id] ?? ''}
+                    onChange={(event) =>
+                      setPasswordDrafts((prev) => ({
+                        ...prev,
+                        [profile.id]: event.target.value
+                      }))
+                    }
                     className="w-full rounded-lg bg-board-850 border border-board-700 px-3 py-2 text-sm"
                   />
+                  <button
+                    onClick={() => {
+                      const value = (passwordDrafts[profile.id] ?? '').trim();
+                      if (!value) return;
+                      updateUser(profile, { password: value });
+                      setPasswordDrafts((prev) => ({ ...prev, [profile.id]: '' }));
+                    }}
+                    className="w-full rounded-lg border border-board-700 px-3 py-2 text-sm text-white disabled:opacity-50"
+                    disabled={!(passwordDrafts[profile.id] ?? '').trim()}
+                  >
+                    Save password
+                  </button>
                 </div>
                 <button
                   onClick={() => deleteUser(profile)}

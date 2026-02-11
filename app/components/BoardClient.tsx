@@ -429,6 +429,7 @@ export default function BoardClient({
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserName, setNewUserName] = useState('');
+  const [passwordDrafts, setPasswordDrafts] = useState<Record<string, string>>({});
 
   const currentProfile = useMemo(
     () => profiles.find((profile) => profile.id === user.id),
@@ -1372,14 +1373,27 @@ export default function BoardClient({
                       <input
                         type="password"
                         placeholder="New password"
-                        onBlur={(event) => {
-                          if (event.target.value) {
-                            handleAdminUpdateUser(profile, { password: event.target.value });
-                            event.target.value = '';
-                          }
-                        }}
+                        value={passwordDrafts[profile.id] ?? ''}
+                        onChange={(event) =>
+                          setPasswordDrafts((prev) => ({
+                            ...prev,
+                            [profile.id]: event.target.value
+                          }))
+                        }
                         className="w-28 rounded-md bg-board-900 border border-board-700 px-2 py-1 text-xs"
                       />
+                      <button
+                        onClick={() => {
+                          const value = (passwordDrafts[profile.id] ?? '').trim();
+                          if (!value) return;
+                          handleAdminUpdateUser(profile, { password: value });
+                          setPasswordDrafts((prev) => ({ ...prev, [profile.id]: '' }));
+                        }}
+                        className="rounded-lg border border-board-700 px-2 py-1 text-xs text-white"
+                        disabled={!(passwordDrafts[profile.id] ?? '').trim()}
+                      >
+                        Save
+                      </button>
                       <button
                         onClick={() => handleAdminDeleteUser(profile)}
                         className="rounded-lg border border-red-500/60 px-3 py-1 text-xs text-red-300"
