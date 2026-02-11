@@ -249,6 +249,17 @@ function ProjectCard({
             </svg>
           </button>
         </div>
+        <button
+          type="button"
+          onClick={() => setShowAddTaskInput((prev) => !prev)}
+          onMouseDown={(event) => event.stopPropagation()}
+          className="text-white text-base leading-none"
+          disabled={!canEdit}
+          aria-label="Toggle add task form"
+          title="Add task"
+        >
+          +
+        </button>
       </div>
       {!canEdit && (
         <div className="mt-1 text-[11px] text-board-400">Read-only</div>
@@ -257,7 +268,7 @@ function ProjectCard({
         {visibleTasks.map((task) => (
           <div
             key={task.id}
-            className="rounded-md bg-board-900/40 px-2 py-1"
+            className="rounded-md bg-[#262e40] px-2 py-1"
           >
             <div className="mb-1 flex items-center gap-2">
               <select
@@ -381,17 +392,7 @@ function ProjectCard({
               X
             </button>
           </div>
-        ) : (
-          <button
-            onClick={() => setShowAddTaskInput(true)}
-            onMouseDown={(event) => event.stopPropagation()}
-            className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-accent-500 text-xs text-white"
-            disabled={!canEdit}
-            aria-label="Show add task form"
-          >
-            +
-          </button>
-        )}
+        ) : null}
       </div>
     </div>
   );
@@ -1160,6 +1161,30 @@ export default function BoardClient({
           </svg>
           Meet
         </a>
+        <a
+          href="https://calendar.google.com/"
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex shrink-0 items-center justify-center rounded-lg bg-board-900 px-3 py-2 text-board-200"
+          title="Open Google Calendar"
+          aria-label="Open Google Calendar"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M7 3v3M17 3v3M4 9h16M6 5h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </a>
+        <a
+          href="https://mysoftwear.atlassian.net/jira/projects?page=1&sortKey=name&sortOrder=ASC"
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex shrink-0 items-center justify-center rounded-lg bg-board-900 px-3 py-2 text-board-200"
+          title="Open Jira Projects"
+          aria-label="Open Jira Projects"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M8 4h8a4 4 0 0 1-4 4H8V4ZM4 10h8a4 4 0 0 1-4 4H4v-4Zm8 6h8a4 4 0 0 1-4 4h-4v-4Z" fill="currentColor" />
+          </svg>
+        </a>
         <div className="flex items-center gap-2 text-[11px] text-board-200">
           <span className="rounded-full bg-board-900 px-2 py-1">
             projects: {boardStats.totalProjects}
@@ -1192,10 +1217,10 @@ export default function BoardClient({
         <button
           type="button"
           onClick={() => setMenuOpen((prev) => !prev)}
-          className="ml-auto rounded-lg bg-board-900 px-3 py-2 text-board-200"
+          className="ml-auto rounded-lg bg-board-900 px-3 py-2 text-white"
           aria-label="Open menu"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
         </button>
