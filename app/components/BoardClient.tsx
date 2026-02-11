@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import {
   DndContext,
   DragEndEvent,
@@ -73,7 +73,6 @@ function ColumnDrop({ id, children }: { id: ColumnId; children: React.ReactNode 
 function ProjectCard({
   project,
   tasks,
-  assigned,
   profiles,
   dueLabel,
   onDelete,
@@ -86,7 +85,6 @@ function ProjectCard({
 }: {
   project: Project;
   tasks: Task[];
-  assigned: Profile | undefined;
   profiles: Profile[];
   dueLabel: string | null;
   onDelete: () => void;
@@ -104,15 +102,13 @@ function ProjectCard({
     transition
   };
   const [draftTitle, setDraftTitle] = useState(project.title);
-  const [draftDescription, setDraftDescription] = useState(project.description ?? '');
   const [newTask, setNewTask] = useState('');
-  const [assigneePickerTaskId, setAssigneePickerTaskId] = useState<string | null>(null);
   const [showAllTasks, setShowAllTasks] = useState(false);
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setDraftTitle(project.title);
-    setDraftDescription(project.description ?? '');
-  }, [project.title, project.description]);
+  }, [project.title]);
 
   const visibleTasks = showAllTasks ? tasks : tasks.slice(0, 3);
 
@@ -127,7 +123,7 @@ function ProjectCard({
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 space-y-1">
+        <div className="flex-1">
           <input
             value={draftTitle}
             disabled={!canEdit}
@@ -147,31 +143,6 @@ function ProjectCard({
             }}
             className="w-full bg-transparent text-sm font-semibold text-white outline-none"
           />
-          <textarea
-            value={draftDescription}
-            disabled={!canEdit}
-            onChange={(event) => setDraftDescription(event.target.value)}
-            onBlur={() => {
-              const nextDescription = draftDescription.trim();
-              onUpdate({
-                ...project,
-                description: nextDescription || null
-              });
-            }}
-            rows={2}
-            className="w-full resize-none bg-transparent text-xs text-board-300 outline-none"
-            placeholder="Description"
-          />
-          {findFirstUrl(draftDescription) && (
-            <a
-              href={findFirstUrl(draftDescription) as string}
-              target="_blank"
-              rel="noreferrer"
-              className="text-[10px] text-accent-400 underline"
-            >
-              Open link
-            </a>
-          )}
         </div>
         <div className="flex flex-col items-end gap-2">
           <button
@@ -226,6 +197,7 @@ function ProjectCard({
             {dueLabel ?? formatDeadlineValue(project.deadline)}
           </div>
           <input
+            ref={dateInputRef}
             type="date"
             value={project.deadline ?? ''}
             onChange={(event) =>
@@ -238,6 +210,25 @@ function ProjectCard({
             className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
             disabled={!canEdit}
           />
+          <button
+            type="button"
+            onClick={() => {
+              const input = dateInputRef.current;
+              if (!input) return;
+              if ('showPicker' in input) {
+                (input as HTMLInputElement & { showPicker: () => void }).showPicker();
+              } else {
+                input.focus();
+              }
+            }}
+            onMouseDown={(event) => event.stopPropagation()}
+            className="absolute right-1 top-1/2 -translate-y-1/2 text-board-300"
+            aria-label="Open calendar"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M7 3v3M17 3v3M4 9h16M6 5h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
         </div>
       </div>
       {!canEdit && (
@@ -249,40 +240,26 @@ function ProjectCard({
             key={task.id}
             className="flex items-start gap-2 rounded-lg border border-board-700 bg-board-900/60 px-2 py-1"
           >
-            {assigneePickerTaskId === task.id ? (
-              <select
-                autoFocus
-                value={task.assigned_user_id ?? ''}
-                onChange={(event) => {
-                  onUpdateTask({
-                    ...task,
-                    assigned_user_id: event.target.value || null
-                  });
-                  setAssigneePickerTaskId(null);
-                }}
-                onBlur={() => setAssigneePickerTaskId(null)}
-                onMouseDown={(event) => event.stopPropagation()}
-                className="appearance-none rounded-full border border-board-700 bg-board-900 px-2 py-1 text-[10px]"
-                disabled={!canEdit}
-              >
-                <option value="">U</option>
-                {profiles.map((profile) => (
-                  <option key={profile.id} value={profile.id}>
-                    {getProfileInitial(profile)}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <button
-                type="button"
-                onClick={() => canEdit && setAssigneePickerTaskId(task.id)}
-                onMouseDown={(event) => event.stopPropagation()}
-                className="flex h-5 w-5 items-center justify-center rounded-full bg-board-700 text-[10px] text-white"
-                aria-label="Assign task user"
-              >
-                {getProfileInitial(profiles.find((p) => p.id === task.assigned_user_id))}
-              </button>
-            )}
+            <select
+              value={task.assigned_user_id ?? ''}
+              onChange={(event) =>
+                onUpdateTask({
+                  ...task,
+                  assigned_user_id: event.target.value || null
+                })
+              }
+              onMouseDown={(event) => event.stopPropagation()}
+              className="h-5 w-8 appearance-none rounded-full border border-board-700 bg-board-900 px-0 text-center text-[10px] text-white"
+              disabled={!canEdit}
+              aria-label="Assign task user"
+            >
+              <option value="">U</option>
+              {profiles.map((profile) => (
+                <option key={profile.id} value={profile.id}>
+                  {getProfileInitial(profile)}
+                </option>
+              ))}
+            </select>
             <input
               type="text"
               value={task.text}
@@ -1315,7 +1292,6 @@ export default function BoardClient({
                         key={project.id}
                         project={project}
                         tasks={getProjectTasks(project.id)}
-                        assigned={profiles.find((profile) => profile.id === project.assigned_user_id)}
                         profiles={profiles}
                         dueLabel={(() => {
                           if (!project.deadline) return null;
