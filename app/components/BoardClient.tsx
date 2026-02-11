@@ -44,8 +44,8 @@ const colorClasses: Record<Project['color_status'], string> = {
 };
 
 const getProfileInitial = (profile?: Profile | null) => {
-  const value = (profile?.name?.trim() || profile?.email || 'U').trim();
-  return value[0]?.toUpperCase() || 'U';
+  const value = (profile?.name?.trim() || profile?.email || '-').trim();
+  return value[0]?.toUpperCase() || '-';
 };
 
 const formatDeadlineValue = (value: string | null) => {
@@ -254,7 +254,7 @@ function ProjectCard({
               disabled={!canEdit}
               aria-label="Assign task user"
             >
-              <option value="">U</option>
+              <option value="">-</option>
               {profiles.map((profile) => (
                 <option key={profile.id} value={profile.id}>
                   {getProfileInitial(profile)}
