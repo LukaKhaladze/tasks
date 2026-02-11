@@ -300,7 +300,7 @@ function ProjectCard({
               onClick={() => onDeleteTask(task)}
               onMouseDown={(event) => event.stopPropagation()}
               disabled={!canEdit}
-              className="text-red-400 text-xs"
+              className="self-center flex h-5 w-5 items-center justify-center text-red-400 text-xs leading-none"
               aria-label="Delete task"
             >
               X
@@ -443,6 +443,42 @@ export default function BoardClient({
     });
     return map;
   }, [filteredProjects]);
+
+  const boardStats = useMemo(() => {
+    const activeTasks = tasks.filter((task) => !task.done).length;
+    const columnCounts: Record<ColumnId, number> = {
+      new: 0,
+      current: 0,
+      support: 0,
+      financial: 0
+    };
+    const colorCounts: Record<Project['color_status'], number> = {
+      white: 0,
+      red: 0,
+      yellow: 0,
+      green: 0
+    };
+    const byUser: Record<string, number> = {};
+
+    projects.forEach((project) => {
+      columnCounts[project.column] += 1;
+      colorCounts[project.color_status] += 1;
+      if (project.assigned_user_id) {
+        byUser[project.assigned_user_id] = (byUser[project.assigned_user_id] ?? 0) + 1;
+      }
+    });
+
+    const topUsers = Object.entries(byUser)
+      .map(([id, count]) => {
+        const profile = profiles.find((p) => p.id === id);
+        const name = profile?.name?.trim() || profile?.email?.split('@')[0] || id.slice(0, 6);
+        return { id, name, count };
+      })
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    return { activeTasks, columnCounts, colorCounts, topUsers };
+  }, [tasks, projects, profiles]);
 
   const canEdit = (_project: Project) => true;
 
@@ -1025,7 +1061,19 @@ export default function BoardClient({
         onRemove={(id) => setToasts((prev) => prev.filter((toast) => toast.id !== id))}
       />
 
-      <div className="mb-3 flex justify-end">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <a
+          href="https://meet.google.com/nwu-oatt-ekj"
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-2 rounded-lg border border-board-700 bg-board-900 px-3 py-2 text-xs text-board-200"
+          title="Open Google Meet"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M15 10.5v3l4 2.5V8l-4 2.5ZM4 7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Meet
+        </a>
         <button
           type="button"
           onClick={() => setMenuOpen((prev) => !prev)}
@@ -1036,6 +1084,27 @@ export default function BoardClient({
             <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
         </button>
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center gap-2 text-[11px] text-board-200">
+        <span className="rounded-full border border-board-700 bg-board-900 px-2 py-1">
+          tasks: {boardStats.activeTasks}
+        </span>
+        {columns.map((column) => (
+          <span key={column.id} className="rounded-full border border-board-700 bg-board-900 px-2 py-1">
+            {column.label.toLowerCase()}: {boardStats.columnCounts[column.id]}
+          </span>
+        ))}
+        {boardStats.topUsers.map((item) => (
+          <span key={item.id} className="rounded-full border border-board-700 bg-board-900 px-2 py-1">
+            {item.name}: {item.count}
+          </span>
+        ))}
+        {colorOptions.map((color) => (
+          <span key={color} className="rounded-full border border-board-700 bg-board-900 px-2 py-1">
+            {color}: {boardStats.colorCounts[color]}
+          </span>
+        ))}
       </div>
 
       {menuOpen && (
