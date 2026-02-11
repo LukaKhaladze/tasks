@@ -8,7 +8,7 @@ export default function WebFeaturesLogo({ compact = false }: { compact?: boolean
   if (!failed) {
     return (
       <img
-        src="/app/Untitled-design.png"
+        src="/Untitled-design.png"
         alt="Web Features"
         className={compact ? 'h-8 w-auto' : 'h-20 w-auto'}
         onError={() => setFailed(true)}
