@@ -1,4 +1,21 @@
+'use client';
+
+import { useState } from 'react';
+
 export default function WebFeaturesLogo({ compact = false }: { compact?: boolean }) {
+  const [failed, setFailed] = useState(false);
+
+  if (!failed) {
+    return (
+      <img
+        src="/app/Untitled-design.png"
+        alt="Web Features"
+        className={compact ? 'h-8 w-auto' : 'h-20 w-auto'}
+        onError={() => setFailed(true)}
+      />
+    );
+  }
+
   return (
     <div className="select-none text-white leading-none">
       <div
@@ -14,4 +31,3 @@ export default function WebFeaturesLogo({ compact = false }: { compact?: boolean
     </div>
   );
 }
-
