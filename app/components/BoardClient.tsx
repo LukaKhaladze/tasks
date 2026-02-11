@@ -186,7 +186,7 @@ function ProjectCard({
         <div className="relative">
           <div
             className={clsx(
-              'rounded-lg border border-board-700 bg-board-900 px-2 py-1 text-[11px] uppercase tracking-wide',
+              'rounded-lg border border-board-700 bg-board-900 pl-2 pr-6 py-1 text-[11px] uppercase tracking-wide',
               dueLabel === 'overdue' && 'text-red-300',
               dueLabel === 'today' && 'text-yellow-300',
               dueLabel === 'tomorrow' && 'text-blue-300',
@@ -223,7 +223,7 @@ function ProjectCard({
               }
             }}
             onMouseDown={(event) => event.stopPropagation()}
-            className="absolute right-1 top-1/2 -translate-y-1/2 text-board-300"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 text-board-300"
             aria-label="Open calendar"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
