@@ -1205,11 +1205,6 @@ export default function BoardClient({
               {column.label.toLowerCase()}: {boardStats.columnCounts[column.id]}
             </span>
           ))}
-          {Object.entries(boardStats.statusCounts).map(([status, count]) => (
-            <span key={status} className="rounded-full bg-board-900 px-2 py-1">
-              {status}: {count}
-            </span>
-          ))}
           {boardStats.users.map((item) => (
             <span key={item.id} className="rounded-full bg-board-900 px-2 py-1">
               {item.name}: {item.count}
@@ -1232,14 +1227,6 @@ export default function BoardClient({
             <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
         </button>
-      </div>
-
-      <div className="mb-4 flex flex-wrap items-center gap-2 text-[11px] text-board-200">
-        {Object.entries(boardStats.statusCounts).map(([status, count]) => (
-          <span key={status} className="rounded-full bg-board-900 px-2 py-1">
-            {status}: {count}
-          </span>
-        ))}
       </div>
 
       {menuOpen && (
