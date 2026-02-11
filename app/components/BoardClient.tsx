@@ -215,8 +215,9 @@ function ProjectCard({
             onClick={() => {
               const input = dateInputRef.current;
               if (!input) return;
-              if ('showPicker' in input) {
-                (input as HTMLInputElement & { showPicker: () => void }).showPicker();
+              const picker = (input as any).showPicker;
+              if (typeof picker === 'function') {
+                picker.call(input);
               } else {
                 input.focus();
               }
