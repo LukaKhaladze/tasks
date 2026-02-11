@@ -202,7 +202,7 @@ function ProjectCard({
               !dueLabel && 'text-board-200'
             )}
           >
-            {dueLabel ?? formatDeadlineValue(project.deadline) || 'waiting'}
+            {dueLabel || formatDeadlineValue(project.deadline) || 'waiting'}
           </div>
           <input
             ref={dateInputRef}
