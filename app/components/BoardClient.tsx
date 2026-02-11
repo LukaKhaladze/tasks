@@ -38,9 +38,9 @@ const findFirstUrl = (value: string) => {
 
 const colorClasses: Record<Project['color_status'], string> = {
   white: 'border-board-600 text-board-200',
-  red: 'border-red-400/60 text-red-200',
-  yellow: 'border-yellow-400/60 text-yellow-200',
-  green: 'border-green-400/60 text-green-200'
+  red: 'border-board-600 text-board-200',
+  yellow: 'border-board-600 text-board-200',
+  green: 'border-board-600 text-board-200'
 };
 
 const getProfileInitial = (profile?: Profile | null) => {
@@ -62,7 +62,7 @@ function ColumnDrop({ id, children }: { id: ColumnId; children: React.ReactNode 
       ref={setNodeRef}
       className={clsx(
         'rounded-2xl border border-board-700 bg-board-900/70 p-2 min-h-[220px] transition',
-        isOver && 'border-accent-500/70 shadow-glow'
+        isOver && 'border-accent-500/70'
       )}
     >
       {children}
@@ -144,7 +144,7 @@ function ProjectCard({
             className="w-full bg-transparent text-sm font-semibold text-white outline-none"
           />
         </div>
-        <div className="flex flex-col items-end gap-2">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={onDelete}
@@ -233,9 +233,9 @@ function ProjectCard({
         </div>
       </div>
       {!canEdit && (
-        <div className="mt-2 text-[11px] text-board-400">Read-only</div>
+        <div className="mt-1 text-[11px] text-board-400">Read-only</div>
       )}
-      <div className="mt-2 space-y-2">
+      <div className="mt-1 space-y-1.5">
         {visibleTasks.map((task) => (
           <div
             key={task.id}
@@ -278,13 +278,13 @@ function ProjectCard({
                 onUpdateTask({ ...task, color_status: event.target.value as Task['color_status'] })
               }
               onMouseDown={(event) => event.stopPropagation()}
-              className="appearance-none rounded-md bg-board-900 border border-board-700 px-1 py-1 text-[10px]"
+              className="appearance-none rounded-md bg-board-900 border border-board-700 px-1 py-1 text-[10px] text-board-200"
               disabled={!canEdit}
             >
-              <option value="white">⚪</option>
-              <option value="red">🔴</option>
-              <option value="yellow">🟡</option>
-              <option value="green">🟢</option>
+              <option value="white">white</option>
+              <option value="red">red</option>
+              <option value="yellow">yellow</option>
+              <option value="green">green</option>
             </select>
             {findFirstUrl(task.text) && (
               <a

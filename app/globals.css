@@ -17,9 +17,10 @@ body {
 
 body {
   font-family: 'Space Grotesk', system-ui, sans-serif;
-  background: radial-gradient(1200px 800px at 10% 0%, rgba(123, 92, 255, 0.2), transparent 60%),
-    radial-gradient(900px 700px at 80% 10%, rgba(0, 209, 255, 0.15), transparent 60%),
-    #0a0b0f;
+  background:
+    radial-gradient(1200px 800px at 8% 0%, rgba(36, 16, 10, 0.75), transparent 62%),
+    radial-gradient(900px 700px at 88% 10%, rgba(255, 82, 51, 0.14), transparent 60%),
+    linear-gradient(145deg, #24100a 0%, #090f1c 58%, #090f1c 100%);
   color: #e7e9f2;
 }
 
