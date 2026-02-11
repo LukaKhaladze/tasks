@@ -99,6 +99,7 @@ function ProjectCard({
   const [draftTitle, setDraftTitle] = useState(project.title);
   const [draftDescription, setDraftDescription] = useState(project.description ?? '');
   const [newTask, setNewTask] = useState('');
+  const [assigneePickerTaskId, setAssigneePickerTaskId] = useState<string | null>(null);
 
   useEffect(() => {
     setDraftTitle(project.title);
@@ -188,18 +189,6 @@ function ProjectCard({
         </div>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-board-300">
-        {dueLabel && (
-          <span
-            className={clsx(
-              'rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wide',
-              dueLabel === 'overdue' && 'border-red-400/60 text-red-300',
-              dueLabel === 'today' && 'border-yellow-400/60 text-yellow-300',
-              dueLabel === 'soon' && 'border-board-500/80 text-board-200'
-            )}
-          >
-            {dueLabel}
-          </span>
-        )}
       </div>
       <div className="mt-2 flex items-center gap-2 text-xs">
         <select
@@ -215,19 +204,34 @@ function ProjectCard({
             </option>
           ))}
         </select>
-        <input
-          type="date"
-          value={project.deadline ?? ''}
-          onChange={(event) =>
-            onUpdate({
-              ...project,
-              deadline: event.target.value || null
-            })
-          }
-          onMouseDown={(event) => event.stopPropagation()}
-          className="rounded-lg border border-board-700 bg-board-900 px-2 py-1"
-          disabled={!canEdit}
-        />
+        <div className="relative">
+          <input
+            type="date"
+            value={project.deadline ?? ''}
+            onChange={(event) =>
+              onUpdate({
+                ...project,
+                deadline: event.target.value || null
+              })
+            }
+            onMouseDown={(event) => event.stopPropagation()}
+            className="rounded-lg border border-board-700 bg-board-900 px-2 py-1 pr-16"
+            disabled={!canEdit}
+          />
+          {dueLabel && (
+            <span
+              className={clsx(
+                'pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] uppercase tracking-wide',
+                dueLabel === 'overdue' && 'text-red-300',
+                dueLabel === 'today' && 'text-yellow-300',
+                dueLabel === 'tomorrow' && 'text-blue-300',
+                dueLabel === 'soon' && 'text-board-200'
+              )}
+            >
+              {dueLabel}
+            </span>
+          )}
+        </div>
       </div>
       {!canEdit && (
         <div className="mt-2 text-[11px] text-board-400">Read-only</div>
@@ -238,49 +242,51 @@ function ProjectCard({
             key={task.id}
             className="flex items-start gap-2 rounded-lg border border-board-700 bg-board-900/60 px-2 py-1"
           >
-            <input
-              type="checkbox"
-              checked={task.done}
-              onChange={() => onUpdateTask({ ...task, done: !task.done })}
-              onMouseDown={(event) => event.stopPropagation()}
-              className="h-4 w-4"
-              disabled={!canEdit}
-            />
-            {task.assigned_user_id && (
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-board-700 text-[10px] text-white">
+            {assigneePickerTaskId === task.id ? (
+              <select
+                autoFocus
+                value={task.assigned_user_id ?? ''}
+                onChange={(event) => {
+                  onUpdateTask({
+                    ...task,
+                    assigned_user_id: event.target.value || null
+                  });
+                  setAssigneePickerTaskId(null);
+                }}
+                onBlur={() => setAssigneePickerTaskId(null)}
+                onMouseDown={(event) => event.stopPropagation()}
+                className="appearance-none rounded-full border border-board-700 bg-board-900 px-2 py-1 text-[10px]"
+                disabled={!canEdit}
+              >
+                <option value="">U</option>
+                {profiles.map((profile) => (
+                  <option key={profile.id} value={profile.id}>
+                    {getProfileInitial(profile)}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <button
+                type="button"
+                onClick={() => canEdit && setAssigneePickerTaskId(task.id)}
+                onMouseDown={(event) => event.stopPropagation()}
+                className="flex h-5 w-5 items-center justify-center rounded-full bg-board-700 text-[10px] text-white"
+                aria-label="Assign task user"
+              >
                 {getProfileInitial(profiles.find((p) => p.id === task.assigned_user_id))}
-              </span>
+              </button>
             )}
-            <textarea
+            <input
+              type="text"
               value={task.text}
               onChange={(event) => onUpdateTask({ ...task, text: event.target.value })}
               onMouseDown={(event) => event.stopPropagation()}
-              rows={3}
               className={clsx(
-                'flex-1 min-h-[52px] resize-y whitespace-pre-wrap break-words bg-transparent text-xs leading-5 outline-none',
+                'flex-1 rounded-md border border-board-700 bg-board-900 px-2 py-1 text-xs outline-none',
                 task.done && 'line-through text-board-400'
               )}
               disabled={!canEdit}
             />
-            <select
-              value={task.assigned_user_id ?? ''}
-              onChange={(event) =>
-                onUpdateTask({
-                  ...task,
-                  assigned_user_id: event.target.value || null
-                })
-              }
-              onMouseDown={(event) => event.stopPropagation()}
-              className="appearance-none rounded-md bg-board-900 border border-board-700 px-1 py-1 text-[10px]"
-              disabled={!canEdit}
-            >
-              <option value="">Unassigned</option>
-              {profiles.map((profile) => (
-                <option key={profile.id} value={profile.id}>
-                  {getProfileInitial(profile)}
-                </option>
-              ))}
-            </select>
             <select
               value={task.color_status ?? 'white'}
               onChange={(event) =>
@@ -408,6 +414,10 @@ export default function BoardClient({
       const list = map.get(task.project_id) ?? [];
       list.push(task);
       map.set(task.project_id, list);
+    });
+    map.forEach((list, projectId) => {
+      list.sort((a, b) => a.sort_order - b.sort_order);
+      map.set(projectId, list);
     });
     return map;
   }, [tasks]);
@@ -1291,8 +1301,15 @@ export default function BoardClient({
                         assigned={profiles.find((profile) => profile.id === project.assigned_user_id)}
                         profiles={profiles}
                         dueLabel={(() => {
-                          const status = dueStatus(project);
-                          return status === 'none' ? null : status;
+                          if (!project.deadline) return null;
+                          const today = startOfDay(new Date());
+                          const deadline = toDateOnly(project.deadline);
+                          if (isBefore(deadline, today)) return 'overdue';
+                          if (isSameDay(deadline, today)) return 'today';
+                          const diff = diffInDays(deadline, today);
+                          if (diff === 1) return 'tomorrow';
+                          if (diff <= dueSoonDays) return 'soon';
+                          return null;
                         })()}
                         onDelete={() => setConfirmDelete(project)}
                         onMove={(nextColumn) => handleMoveProject(project, nextColumn)}
