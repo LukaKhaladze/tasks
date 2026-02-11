@@ -112,10 +112,19 @@ function ProjectCard({
   const [newTask, setNewTask] = useState('');
   const [showAllTasks, setShowAllTasks] = useState(false);
   const dateInputRef = useRef<HTMLInputElement>(null);
+  const taskTextRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
 
   useEffect(() => {
     setDraftTitle(project.title);
   }, [project.title]);
+
+  useEffect(() => {
+    Object.values(taskTextRefs.current).forEach((el) => {
+      if (!el) return;
+      el.style.height = '0px';
+      el.style.height = `${el.scrollHeight}px`;
+    });
+  }, [tasks, showAllTasks]);
 
   const visibleTasks = showAllTasks ? tasks : tasks.slice(0, 3);
 
@@ -296,6 +305,9 @@ function ProjectCard({
               </button>
             </div>
             <textarea
+              ref={(el) => {
+                taskTextRefs.current[task.id] = el;
+              }}
               value={task.text}
               onChange={(event) => onUpdateTask({ ...task, text: event.target.value })}
               onMouseDown={(event) => event.stopPropagation()}
@@ -306,7 +318,7 @@ function ProjectCard({
               }}
               rows={1}
               className={clsx(
-                'w-full min-h-[24px] resize-none bg-transparent px-1 text-xs leading-5 outline-none break-words whitespace-pre-wrap',
+                'w-full min-h-[24px] resize-none overflow-hidden bg-transparent px-1 text-xs leading-5 outline-none break-words whitespace-pre-wrap',
                 task.done && 'line-through text-board-400'
               )}
               disabled={!canEdit}
