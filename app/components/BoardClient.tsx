@@ -43,6 +43,13 @@ const colorClasses: Record<Project['color_status'], string> = {
   green: 'border-board-600 text-board-200'
 };
 
+const taskColorDotClasses: Record<Project['color_status'], string> = {
+  white: 'bg-white',
+  red: 'bg-red-500',
+  yellow: 'bg-yellow-400',
+  green: 'bg-green-500'
+};
+
 const getProfileInitial = (profile?: Profile | null) => {
   const value = (profile?.name?.trim() || profile?.email || '-').trim();
   return value[0]?.toUpperCase() || '-';
@@ -239,7 +246,7 @@ function ProjectCard({
         {visibleTasks.map((task) => (
           <div
             key={task.id}
-            className="flex items-start gap-2 rounded-lg border border-board-700 bg-board-900/60 px-2 py-1"
+            className="flex items-center gap-2 rounded-md bg-board-900/40 px-2 py-1"
           >
             <select
               value={task.assigned_user_id ?? ''}
@@ -250,7 +257,7 @@ function ProjectCard({
                 })
               }
               onMouseDown={(event) => event.stopPropagation()}
-              className="h-5 w-8 appearance-none rounded-full border border-board-700 bg-board-900 px-0 text-center text-[10px] text-white"
+              className="h-6 w-8 appearance-none rounded-full bg-board-800 px-0 text-center text-[10px] text-white"
               disabled={!canEdit}
               aria-label="Assign task user"
             >
@@ -267,25 +274,26 @@ function ProjectCard({
               onChange={(event) => onUpdateTask({ ...task, text: event.target.value })}
               onMouseDown={(event) => event.stopPropagation()}
               className={clsx(
-                'flex-1 rounded-md border border-board-700 bg-board-900 px-2 py-1 text-xs outline-none',
+                'h-6 flex-1 bg-transparent px-1 text-xs outline-none',
                 task.done && 'line-through text-board-400'
               )}
               disabled={!canEdit}
             />
-            <select
-              value={task.color_status ?? 'white'}
-              onChange={(event) =>
-                onUpdateTask({ ...task, color_status: event.target.value as Task['color_status'] })
-              }
+            <button
+              type="button"
+              onClick={() => {
+                const current = task.color_status ?? 'white';
+                const idx = colorOptions.indexOf(current);
+                const next = colorOptions[(idx + 1) % colorOptions.length];
+                onUpdateTask({ ...task, color_status: next });
+              }}
               onMouseDown={(event) => event.stopPropagation()}
-              className="appearance-none rounded-md bg-board-900 border border-board-700 px-1 py-1 text-[10px] text-board-200"
+              className="flex h-6 w-6 items-center justify-center"
               disabled={!canEdit}
+              aria-label="Change task color"
             >
-              <option value="white">white</option>
-              <option value="red">red</option>
-              <option value="yellow">yellow</option>
-              <option value="green">green</option>
-            </select>
+              <span className={clsx('h-3 w-3 rounded-full', taskColorDotClasses[task.color_status ?? 'white'])} />
+            </button>
             {findFirstUrl(task.text) && (
               <a
                 href={findFirstUrl(task.text) as string}
@@ -300,7 +308,7 @@ function ProjectCard({
               onClick={() => onDeleteTask(task)}
               onMouseDown={(event) => event.stopPropagation()}
               disabled={!canEdit}
-              className="self-center flex h-5 w-5 items-center justify-center text-red-400 text-xs leading-none"
+              className="flex h-6 w-6 items-center justify-center text-red-400 text-xs leading-none"
               aria-label="Delete task"
             >
               X
@@ -1061,12 +1069,12 @@ export default function BoardClient({
         onRemove={(id) => setToasts((prev) => prev.filter((toast) => toast.id !== id))}
       />
 
-      <div className="mb-3 flex items-center justify-between gap-3">
+      <div className="mb-4 flex items-center gap-3 overflow-x-auto whitespace-nowrap">
         <a
           href="https://meet.google.com/nwu-oatt-ekj"
           target="_blank"
           rel="noreferrer"
-          className="inline-flex items-center gap-2 rounded-lg border border-board-700 bg-board-900 px-3 py-2 text-xs text-board-200"
+          className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-board-900 px-3 py-2 text-xs text-board-200"
           title="Open Google Meet"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -1074,37 +1082,37 @@ export default function BoardClient({
           </svg>
           Meet
         </a>
+        <div className="flex items-center gap-2 text-[11px] text-board-200">
+          <span className="rounded-full bg-board-900 px-2 py-1">
+          tasks: {boardStats.activeTasks}
+          </span>
+          {columns.map((column) => (
+            <span key={column.id} className="rounded-full bg-board-900 px-2 py-1">
+              {column.label.toLowerCase()}: {boardStats.columnCounts[column.id]}
+            </span>
+          ))}
+          {boardStats.topUsers.map((item) => (
+            <span key={item.id} className="rounded-full bg-board-900 px-2 py-1">
+              {item.name}: {item.count}
+            </span>
+          ))}
+          {colorOptions.map((color) => (
+            <span key={color} className="inline-flex items-center gap-1 rounded-full bg-board-900 px-2 py-1">
+              <span className={clsx('h-2.5 w-2.5 rounded-full', taskColorDotClasses[color])} />
+              {boardStats.colorCounts[color]}
+            </span>
+          ))}
+        </div>
         <button
           type="button"
           onClick={() => setMenuOpen((prev) => !prev)}
-          className="rounded-lg border border-board-700 bg-board-900 px-3 py-2 text-board-200"
+          className="ml-auto rounded-lg bg-board-900 px-3 py-2 text-board-200"
           aria-label="Open menu"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
           </svg>
         </button>
-      </div>
-
-      <div className="mb-4 flex flex-wrap items-center gap-2 text-[11px] text-board-200">
-        <span className="rounded-full border border-board-700 bg-board-900 px-2 py-1">
-          tasks: {boardStats.activeTasks}
-        </span>
-        {columns.map((column) => (
-          <span key={column.id} className="rounded-full border border-board-700 bg-board-900 px-2 py-1">
-            {column.label.toLowerCase()}: {boardStats.columnCounts[column.id]}
-          </span>
-        ))}
-        {boardStats.topUsers.map((item) => (
-          <span key={item.id} className="rounded-full border border-board-700 bg-board-900 px-2 py-1">
-            {item.name}: {item.count}
-          </span>
-        ))}
-        {colorOptions.map((color) => (
-          <span key={color} className="rounded-full border border-board-700 bg-board-900 px-2 py-1">
-            {color}: {boardStats.colorCounts[color]}
-          </span>
-        ))}
       </div>
 
       {menuOpen && (
