@@ -246,28 +246,54 @@ function ProjectCard({
         {visibleTasks.map((task) => (
           <div
             key={task.id}
-            className="flex items-start gap-2 rounded-md bg-board-900/40 px-2 py-1"
+            className="rounded-md bg-board-900/40 px-2 py-1"
           >
-            <select
-              value={task.assigned_user_id ?? ''}
-              onChange={(event) =>
-                onUpdateTask({
-                  ...task,
-                  assigned_user_id: event.target.value || null
-                })
-              }
-              onMouseDown={(event) => event.stopPropagation()}
-              className="h-6 w-8 appearance-none rounded-full bg-board-800 px-0 text-center text-[10px] text-white"
-              disabled={!canEdit}
-              aria-label="Assign task user"
-            >
-              <option value="">-</option>
-              {profiles.map((profile) => (
-                <option key={profile.id} value={profile.id}>
-                  {getProfileInitial(profile)}
-                </option>
-              ))}
-            </select>
+            <div className="mb-1 flex items-center gap-2">
+              <select
+                value={task.assigned_user_id ?? ''}
+                onChange={(event) =>
+                  onUpdateTask({
+                    ...task,
+                    assigned_user_id: event.target.value || null
+                  })
+                }
+                onMouseDown={(event) => event.stopPropagation()}
+                className="h-6 w-8 appearance-none rounded-full bg-board-800 px-0 text-center text-[10px] text-white"
+                disabled={!canEdit}
+                aria-label="Assign task user"
+              >
+                <option value="">-</option>
+                {profiles.map((profile) => (
+                  <option key={profile.id} value={profile.id}>
+                    {getProfileInitial(profile)}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={task.color_status ?? 'white'}
+                onChange={(event) =>
+                  onUpdateTask({ ...task, color_status: event.target.value as Task['color_status'] })
+                }
+                onMouseDown={(event) => event.stopPropagation()}
+                className="appearance-none h-6 rounded-md bg-board-800 px-2 text-[10px] text-board-200"
+                disabled={!canEdit}
+                aria-label="Select task color"
+              >
+                <option value="white">⚪</option>
+                <option value="red">🔴</option>
+                <option value="yellow">🟡</option>
+                <option value="green">🟢</option>
+              </select>
+              <button
+                onClick={() => onDeleteTask(task)}
+                onMouseDown={(event) => event.stopPropagation()}
+                disabled={!canEdit}
+                className="ml-auto flex h-6 w-6 items-center justify-center text-red-400 text-xs leading-none"
+                aria-label="Delete task"
+              >
+                X
+              </button>
+            </div>
             <textarea
               value={task.text}
               onChange={(event) => onUpdateTask({ ...task, text: event.target.value })}
@@ -277,47 +303,23 @@ function ProjectCard({
                 el.style.height = '0px';
                 el.style.height = `${el.scrollHeight}px`;
               }}
-              rows={1}
+              rows={2}
               className={clsx(
-                'min-h-[24px] flex-1 resize-none bg-transparent px-1 text-xs leading-5 outline-none break-words whitespace-pre-wrap',
+                'w-full min-h-[44px] resize-none bg-transparent px-1 text-xs leading-5 outline-none break-words whitespace-pre-wrap',
                 task.done && 'line-through text-board-400'
               )}
               disabled={!canEdit}
             />
-            <select
-              value={task.color_status ?? 'white'}
-              onChange={(event) =>
-                onUpdateTask({ ...task, color_status: event.target.value as Task['color_status'] })
-              }
-              onMouseDown={(event) => event.stopPropagation()}
-              className="appearance-none h-6 rounded-md bg-board-800 px-2 text-[10px] text-board-200"
-              disabled={!canEdit}
-              aria-label="Select task color"
-            >
-              <option value="white">white</option>
-              <option value="red">red</option>
-              <option value="yellow">yellow</option>
-              <option value="green">green</option>
-            </select>
             {findFirstUrl(task.text) && (
               <a
                 href={findFirstUrl(task.text) as string}
                 target="_blank"
                 rel="noreferrer"
-                className="self-center max-w-[140px] truncate text-[10px] text-accent-400 underline"
+                className="mt-1 block break-all text-[10px] text-accent-400 underline"
               >
                 {findFirstUrl(task.text)}
               </a>
             )}
-            <button
-              onClick={() => onDeleteTask(task)}
-              onMouseDown={(event) => event.stopPropagation()}
-              disabled={!canEdit}
-              className="flex h-6 w-6 items-center justify-center text-red-400 text-xs leading-none"
-              aria-label="Delete task"
-            >
-              X
-            </button>
           </div>
         ))}
         {tasks.length > 3 && (
