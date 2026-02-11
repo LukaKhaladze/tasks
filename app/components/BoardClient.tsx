@@ -111,6 +111,7 @@ function ProjectCard({
   const [draftTitle, setDraftTitle] = useState(project.title);
   const [newTask, setNewTask] = useState('');
   const [showAllTasks, setShowAllTasks] = useState(false);
+  const [showAddTaskInput, setShowAddTaskInput] = useState(false);
   const dateInputRef = useRef<HTMLInputElement>(null);
   const taskTextRefs = useRef<Record<string, HTMLTextAreaElement | null>>({});
 
@@ -345,28 +346,52 @@ function ProjectCard({
             {showAllTasks ? 'See less' : `See more (${tasks.length - 3})`}
           </button>
         )}
-        <div className="flex gap-2">
-          <input
-            value={newTask}
-            onChange={(event) => setNewTask(event.target.value)}
-            onMouseDown={(event) => event.stopPropagation()}
-            placeholder="Add task"
-            className="flex-1 rounded-lg bg-board-900 border border-board-700 px-2 py-1 text-xs"
-            disabled={!canEdit}
-          />
+        {showAddTaskInput ? (
+          <div className="flex gap-2">
+            <input
+              value={newTask}
+              onChange={(event) => setNewTask(event.target.value)}
+              onMouseDown={(event) => event.stopPropagation()}
+              placeholder="Add task"
+              className="flex-1 rounded-lg bg-board-900 border border-board-700 px-2 py-1 text-xs"
+              disabled={!canEdit}
+            />
+            <button
+              onClick={() => {
+                if (!newTask.trim()) return;
+                onAddTask(newTask.trim());
+                setNewTask('');
+                setShowAddTaskInput(false);
+              }}
+              onMouseDown={(event) => event.stopPropagation()}
+              className="rounded-lg bg-accent-500 px-2 text-xs text-white"
+              disabled={!canEdit}
+            >
+              Add
+            </button>
+            <button
+              onClick={() => {
+                setNewTask('');
+                setShowAddTaskInput(false);
+              }}
+              onMouseDown={(event) => event.stopPropagation()}
+              className="rounded-lg bg-board-800 px-2 text-xs text-white"
+              disabled={!canEdit}
+            >
+              X
+            </button>
+          </div>
+        ) : (
           <button
-            onClick={() => {
-              if (!newTask.trim()) return;
-              onAddTask(newTask.trim());
-              setNewTask('');
-            }}
+            onClick={() => setShowAddTaskInput(true)}
             onMouseDown={(event) => event.stopPropagation()}
-            className="rounded-lg bg-accent-500 px-2 text-xs text-white"
+            className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-accent-500 text-xs text-white"
             disabled={!canEdit}
+            aria-label="Show add task form"
           >
             +
           </button>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -474,6 +499,7 @@ export default function BoardClient({
 
   const boardStats = useMemo(() => {
     const activeTasks = tasks.filter((task) => !task.done).length;
+    const totalProjects = projects.length;
     const columnCounts: Record<ColumnId, number> = {
       new: 0,
       current: 0,
@@ -486,27 +512,48 @@ export default function BoardClient({
       yellow: 0,
       green: 0
     };
+    const statusCounts: Record<string, number> = {
+      waiting: 0,
+      overdue: 0,
+      today: 0,
+      tomorrow: 0,
+      soon: 0
+    };
     const byUser: Record<string, number> = {};
 
     projects.forEach((project) => {
       columnCounts[project.column] += 1;
       colorCounts[project.color_status] += 1;
+      if (!project.deadline) {
+        statusCounts.waiting += 1;
+      } else {
+        const today = startOfDay(new Date());
+        const deadline = toDateOnly(project.deadline);
+        if (isBefore(deadline, today)) {
+          statusCounts.overdue += 1;
+        } else if (isSameDay(deadline, today)) {
+          statusCounts.today += 1;
+        } else {
+          const diff = diffInDays(deadline, today);
+          if (diff === 1) statusCounts.tomorrow += 1;
+          else if (diff <= dueSoonDays) statusCounts.soon += 1;
+        }
+      }
       if (project.assigned_user_id) {
         byUser[project.assigned_user_id] = (byUser[project.assigned_user_id] ?? 0) + 1;
       }
     });
 
-    const topUsers = Object.entries(byUser)
+    const users = Object.entries(byUser)
       .map(([id, count]) => {
         const profile = profiles.find((p) => p.id === id);
         const name = profile?.name?.trim() || profile?.email?.split('@')[0] || id.slice(0, 6);
         return { id, name, count };
       })
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
+      .sort((a, b) => a.name.localeCompare(b.name));
 
-    return { activeTasks, columnCounts, colorCounts, topUsers };
-  }, [tasks, projects, profiles]);
+    return { activeTasks, totalProjects, columnCounts, colorCounts, statusCounts, users };
+  }, [tasks, projects, profiles, dueSoonDays]);
 
   const canEdit = (_project: Project) => true;
 
@@ -1115,6 +1162,9 @@ export default function BoardClient({
         </a>
         <div className="flex items-center gap-2 text-[11px] text-board-200">
           <span className="rounded-full bg-board-900 px-2 py-1">
+            projects: {boardStats.totalProjects}
+          </span>
+          <span className="rounded-full bg-board-900 px-2 py-1">
           tasks: {boardStats.activeTasks}
           </span>
           {columns.map((column) => (
@@ -1122,7 +1172,12 @@ export default function BoardClient({
               {column.label.toLowerCase()}: {boardStats.columnCounts[column.id]}
             </span>
           ))}
-          {boardStats.topUsers.map((item) => (
+          {Object.entries(boardStats.statusCounts).map(([status, count]) => (
+            <span key={status} className="rounded-full bg-board-900 px-2 py-1">
+              {status}: {count}
+            </span>
+          ))}
+          {boardStats.users.map((item) => (
             <span key={item.id} className="rounded-full bg-board-900 px-2 py-1">
               {item.name}: {item.count}
             </span>
