@@ -18,6 +18,7 @@ import Toast, { ToastMessage } from '@/app/components/Toast';
 import SavingIndicator from '@/app/components/SavingIndicator';
 import ConfirmDialog from '@/app/components/ConfirmDialog';
 import ProjectModal from '@/app/components/ProjectModal';
+import WebFeaturesLogo from '@/app/components/WebFeaturesLogo';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import clsx from 'clsx';
@@ -1147,17 +1148,9 @@ export default function BoardClient({
       />
 
       <div className="mb-4 flex items-center gap-3 overflow-x-auto whitespace-nowrap">
-        <button
-          type="button"
-          onClick={() => createProject()}
-          className="inline-flex shrink-0 items-center justify-center rounded-lg bg-board-900 px-3 py-2 text-board-200"
-          aria-label="Add project"
-          title="New project"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-        </button>
+        <a href="/dashboard" className="inline-flex shrink-0 items-center rounded-lg bg-board-900 px-3 py-2" aria-label="Web Features">
+          <WebFeaturesLogo compact />
+        </a>
         <a
           href="https://meet.google.com/nwu-oatt-ekj"
           target="_blank"

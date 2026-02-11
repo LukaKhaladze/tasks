@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
 import LoginForm from '@/app/components/LoginForm';
+import WebFeaturesLogo from '@/app/components/WebFeaturesLogo';
 
 export default async function LoginPage() {
   const supabase = createServerClient();
@@ -15,6 +16,9 @@ export default async function LoginPage() {
   return (
     <main className="min-h-screen flex items-center justify-center px-6">
       <div className="w-full max-w-md rounded-2xl bg-board-900/90 border border-board-700/60 shadow-glow p-8">
+        <div className="mb-6 flex justify-center">
+          <WebFeaturesLogo />
+        </div>
         <h1 className="text-3xl font-semibold mb-2">Sign in</h1>
         <p className="text-board-300 mb-6">
           Access the realtime project manager.
