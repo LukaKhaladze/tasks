@@ -524,7 +524,6 @@ export default function BoardClient({
 
     projects.forEach((project) => {
       columnCounts[project.column] += 1;
-      colorCounts[project.color_status] += 1;
       if (!project.deadline) {
         statusCounts.waiting += 1;
       } else {
@@ -542,6 +541,15 @@ export default function BoardClient({
       }
       if (project.assigned_user_id) {
         byUser[project.assigned_user_id] = (byUser[project.assigned_user_id] ?? 0) + 1;
+      }
+    });
+
+    // Color and user stats should reflect task-level usage in the board UI.
+    tasks.forEach((task) => {
+      const taskColor = task.color_status ?? 'white';
+      colorCounts[taskColor] += 1;
+      if (task.assigned_user_id) {
+        byUser[task.assigned_user_id] = (byUser[task.assigned_user_id] ?? 0) + 1;
       }
     });
 
