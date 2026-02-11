@@ -43,6 +43,11 @@ const colorClasses: Record<Project['color_status'], string> = {
   green: 'border-green-400/60 text-green-200'
 };
 
+const getProfileInitial = (profile?: Profile | null) => {
+  const value = (profile?.name?.trim() || profile?.email || 'U').trim();
+  return value[0]?.toUpperCase() || 'U';
+};
+
 function ColumnDrop({ id, children }: { id: ColumnId; children: React.ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
@@ -172,14 +177,17 @@ function ProjectCard({
             type="button"
             {...attributes}
             {...listeners}
-            className="text-board-400 text-xs"
+            className="text-board-400"
+            aria-label="Drag project"
+            title="Drag project"
           >
-            drag
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M9 6h6M9 12h6M9 18h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
           </button>
         </div>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-board-300">
-        {project.deadline && <span>Due {project.deadline}</span>}
         {dueLabel && (
           <span
             className={clsx(
@@ -198,7 +206,7 @@ function ProjectCard({
           value={project.column}
           onChange={(event) => onMove(event.target.value as ColumnId)}
           onMouseDown={(event) => event.stopPropagation()}
-          className="rounded-lg border border-board-700 bg-board-900 px-2 py-1"
+          className="appearance-none rounded-lg border border-board-700 bg-board-900 px-2 py-1"
           disabled={!canEdit}
         >
           {columns.map((column) => (
@@ -228,7 +236,7 @@ function ProjectCard({
         {previewTasks.map((task) => (
           <div
             key={task.id}
-            className="flex items-center gap-2 rounded-lg border border-board-700 bg-board-900/60 px-2 py-1"
+            className="flex items-start gap-2 rounded-lg border border-board-700 bg-board-900/60 px-2 py-1"
           >
             <input
               type="checkbox"
@@ -240,18 +248,16 @@ function ProjectCard({
             />
             {task.assigned_user_id && (
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-board-700 text-[10px] text-white">
-                {(profiles.find((p) => p.id === task.assigned_user_id)?.name ??
-                  profiles.find((p) => p.id === task.assigned_user_id)?.email ??
-                  'U')[0]?.toUpperCase()}
+                {getProfileInitial(profiles.find((p) => p.id === task.assigned_user_id))}
               </span>
             )}
             <textarea
               value={task.text}
               onChange={(event) => onUpdateTask({ ...task, text: event.target.value })}
               onMouseDown={(event) => event.stopPropagation()}
-              rows={2}
+              rows={3}
               className={clsx(
-                'flex-1 resize-none bg-transparent text-xs outline-none',
+                'flex-1 min-h-[52px] resize-y whitespace-pre-wrap break-words bg-transparent text-xs leading-5 outline-none',
                 task.done && 'line-through text-board-400'
               )}
               disabled={!canEdit}
@@ -265,13 +271,13 @@ function ProjectCard({
                 })
               }
               onMouseDown={(event) => event.stopPropagation()}
-              className="rounded-md bg-board-900 border border-board-700 px-1 py-1 text-[10px]"
+              className="appearance-none rounded-md bg-board-900 border border-board-700 px-1 py-1 text-[10px]"
               disabled={!canEdit}
             >
               <option value="">Unassigned</option>
               {profiles.map((profile) => (
                 <option key={profile.id} value={profile.id}>
-                  {profile.name?.trim() || profile.email || 'User'}
+                  {getProfileInitial(profile)}
                 </option>
               ))}
             </select>
@@ -281,7 +287,7 @@ function ProjectCard({
                 onUpdateTask({ ...task, color_status: event.target.value as Task['color_status'] })
               }
               onMouseDown={(event) => event.stopPropagation()}
-              className="rounded-md bg-board-900 border border-board-700 px-1 py-1 text-[10px]"
+              className="appearance-none rounded-md bg-board-900 border border-board-700 px-1 py-1 text-[10px]"
               disabled={!canEdit}
             >
               <option value="white">⚪</option>
