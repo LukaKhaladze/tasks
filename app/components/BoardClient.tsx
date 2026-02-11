@@ -1234,6 +1234,14 @@ export default function BoardClient({
         </button>
       </div>
 
+      <div className="mb-4 flex flex-wrap items-center gap-2 text-[11px] text-board-200">
+        {Object.entries(boardStats.statusCounts).map(([status, count]) => (
+          <span key={status} className="rounded-full bg-board-900 px-2 py-1">
+            {status}: {count}
+          </span>
+        ))}
+      </div>
+
       {menuOpen && (
         <div className="mb-4 ml-auto w-full max-w-xs rounded-xl border border-board-700 bg-board-900 p-3">
           <div className="grid grid-cols-1 gap-2 text-sm">
