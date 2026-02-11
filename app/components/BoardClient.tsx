@@ -1080,7 +1080,7 @@ export default function BoardClient({
       <div className="mb-4 flex items-center gap-3 overflow-x-auto whitespace-nowrap">
         <button
           type="button"
-          onClick={createProject}
+          onClick={() => createProject()}
           className="inline-flex shrink-0 items-center justify-center rounded-lg bg-board-900 px-3 py-2 text-board-200"
           aria-label="Add project"
           title="New project"
