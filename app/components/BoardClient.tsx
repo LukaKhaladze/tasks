@@ -246,7 +246,7 @@ function ProjectCard({
         {visibleTasks.map((task) => (
           <div
             key={task.id}
-            className="flex items-center gap-2 rounded-md bg-board-900/40 px-2 py-1"
+            className="flex items-start gap-2 rounded-md bg-board-900/40 px-2 py-1"
           >
             <select
               value={task.assigned_user_id ?? ''}
@@ -268,40 +268,45 @@ function ProjectCard({
                 </option>
               ))}
             </select>
-            <input
-              type="text"
+            <textarea
               value={task.text}
               onChange={(event) => onUpdateTask({ ...task, text: event.target.value })}
               onMouseDown={(event) => event.stopPropagation()}
+              onInput={(event) => {
+                const el = event.currentTarget;
+                el.style.height = '0px';
+                el.style.height = `${el.scrollHeight}px`;
+              }}
+              rows={1}
               className={clsx(
-                'h-6 flex-1 bg-transparent px-1 text-xs outline-none',
+                'min-h-[24px] flex-1 resize-none bg-transparent px-1 text-xs leading-5 outline-none break-words whitespace-pre-wrap',
                 task.done && 'line-through text-board-400'
               )}
               disabled={!canEdit}
             />
-            <button
-              type="button"
-              onClick={() => {
-                const current = task.color_status ?? 'white';
-                const idx = colorOptions.indexOf(current);
-                const next = colorOptions[(idx + 1) % colorOptions.length];
-                onUpdateTask({ ...task, color_status: next });
-              }}
+            <select
+              value={task.color_status ?? 'white'}
+              onChange={(event) =>
+                onUpdateTask({ ...task, color_status: event.target.value as Task['color_status'] })
+              }
               onMouseDown={(event) => event.stopPropagation()}
-              className="flex h-6 w-6 items-center justify-center"
+              className="appearance-none h-6 rounded-md bg-board-800 px-2 text-[10px] text-board-200"
               disabled={!canEdit}
-              aria-label="Change task color"
+              aria-label="Select task color"
             >
-              <span className={clsx('h-3 w-3 rounded-full', taskColorDotClasses[task.color_status ?? 'white'])} />
-            </button>
+              <option value="white">white</option>
+              <option value="red">red</option>
+              <option value="yellow">yellow</option>
+              <option value="green">green</option>
+            </select>
             {findFirstUrl(task.text) && (
               <a
                 href={findFirstUrl(task.text) as string}
                 target="_blank"
                 rel="noreferrer"
-                className="text-[10px] text-accent-400 underline"
+                className="self-center max-w-[140px] truncate text-[10px] text-accent-400 underline"
               >
-                link
+                {findFirstUrl(task.text)}
               </a>
             )}
             <button
@@ -1070,6 +1075,17 @@ export default function BoardClient({
       />
 
       <div className="mb-4 flex items-center gap-3 overflow-x-auto whitespace-nowrap">
+        <button
+          type="button"
+          onClick={createProject}
+          className="inline-flex shrink-0 items-center justify-center rounded-lg bg-board-900 px-3 py-2 text-board-200"
+          aria-label="Add project"
+          title="New project"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </button>
         <a
           href="https://meet.google.com/nwu-oatt-ekj"
           target="_blank"
