@@ -48,6 +48,13 @@ const getProfileInitial = (profile?: Profile | null) => {
   return value[0]?.toUpperCase() || 'U';
 };
 
+const formatDeadlineValue = (value: string | null) => {
+  if (!value) return '';
+  const [year, month, day] = value.split('-');
+  if (!year || !month || !day) return value;
+  return `${day}.${month}.${year}`;
+};
+
 function ColumnDrop({ id, children }: { id: ColumnId; children: React.ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
@@ -100,13 +107,14 @@ function ProjectCard({
   const [draftDescription, setDraftDescription] = useState(project.description ?? '');
   const [newTask, setNewTask] = useState('');
   const [assigneePickerTaskId, setAssigneePickerTaskId] = useState<string | null>(null);
+  const [showAllTasks, setShowAllTasks] = useState(false);
 
   useEffect(() => {
     setDraftTitle(project.title);
     setDraftDescription(project.description ?? '');
   }, [project.title, project.description]);
 
-  const previewTasks = tasks.slice(0, 3);
+  const visibleTasks = showAllTasks ? tasks : tasks.slice(0, 3);
 
   return (
     <div
@@ -205,6 +213,18 @@ function ProjectCard({
           ))}
         </select>
         <div className="relative">
+          <div
+            className={clsx(
+              'rounded-lg border border-board-700 bg-board-900 px-2 py-1 text-[11px] uppercase tracking-wide',
+              dueLabel === 'overdue' && 'text-red-300',
+              dueLabel === 'today' && 'text-yellow-300',
+              dueLabel === 'tomorrow' && 'text-blue-300',
+              dueLabel === 'soon' && 'text-board-200',
+              !dueLabel && 'text-board-200'
+            )}
+          >
+            {dueLabel ?? formatDeadlineValue(project.deadline)}
+          </div>
           <input
             type="date"
             value={project.deadline ?? ''}
@@ -215,29 +235,16 @@ function ProjectCard({
               })
             }
             onMouseDown={(event) => event.stopPropagation()}
-            className="rounded-lg border border-board-700 bg-board-900 px-2 py-1 pr-16"
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
             disabled={!canEdit}
           />
-          {dueLabel && (
-            <span
-              className={clsx(
-                'pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] uppercase tracking-wide',
-                dueLabel === 'overdue' && 'text-red-300',
-                dueLabel === 'today' && 'text-yellow-300',
-                dueLabel === 'tomorrow' && 'text-blue-300',
-                dueLabel === 'soon' && 'text-board-200'
-              )}
-            >
-              {dueLabel}
-            </span>
-          )}
         </div>
       </div>
       {!canEdit && (
         <div className="mt-2 text-[11px] text-board-400">Read-only</div>
       )}
       <div className="mt-2 space-y-2">
-        {previewTasks.map((task) => (
+        {visibleTasks.map((task) => (
           <div
             key={task.id}
             className="flex items-start gap-2 rounded-lg border border-board-700 bg-board-900/60 px-2 py-1"
@@ -322,6 +329,16 @@ function ProjectCard({
             </button>
           </div>
         ))}
+        {tasks.length > 3 && (
+          <button
+            type="button"
+            onClick={() => setShowAllTasks((prev) => !prev)}
+            onMouseDown={(event) => event.stopPropagation()}
+            className="text-[11px] text-board-300 underline"
+          >
+            {showAllTasks ? 'See less' : `See more (${tasks.length - 3})`}
+          </button>
+        )}
         <div className="flex gap-2">
           <input
             value={newTask}
