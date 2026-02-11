@@ -21,6 +21,9 @@ body {
     radial-gradient(1200px 800px at 8% 0%, rgba(36, 16, 10, 0.75), transparent 62%),
     radial-gradient(900px 700px at 88% 10%, rgba(255, 82, 51, 0.14), transparent 60%),
     linear-gradient(145deg, #24100a 0%, #090f1c 58%, #090f1c 100%);
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-attachment: fixed;
   color: #e7e9f2;
 }
 

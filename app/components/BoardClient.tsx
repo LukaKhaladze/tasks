@@ -155,7 +155,7 @@ function ProjectCard({
           <button
             type="button"
             onClick={onDelete}
-            className="text-red-300 text-xs"
+            className="text-white text-xs"
             title="Delete"
           >
             X
@@ -198,10 +198,11 @@ function ProjectCard({
               dueLabel === 'today' && 'text-yellow-300',
               dueLabel === 'tomorrow' && 'text-blue-300',
               dueLabel === 'soon' && 'text-board-200',
+              dueLabel === 'waiting' && 'text-board-300',
               !dueLabel && 'text-board-200'
             )}
           >
-            {dueLabel ?? formatDeadlineValue(project.deadline)}
+            {dueLabel ?? formatDeadlineValue(project.deadline) || 'waiting'}
           </div>
           <input
             ref={dateInputRef}
@@ -288,7 +289,7 @@ function ProjectCard({
                 onClick={() => onDeleteTask(task)}
                 onMouseDown={(event) => event.stopPropagation()}
                 disabled={!canEdit}
-                className="ml-auto flex h-6 w-6 items-center justify-center text-red-400 text-xs leading-none"
+                className="ml-auto flex h-6 w-6 items-center justify-center text-white text-xs leading-none"
                 aria-label="Delete task"
               >
                 X
@@ -303,9 +304,9 @@ function ProjectCard({
                 el.style.height = '0px';
                 el.style.height = `${el.scrollHeight}px`;
               }}
-              rows={2}
+              rows={1}
               className={clsx(
-                'w-full min-h-[44px] resize-none bg-transparent px-1 text-xs leading-5 outline-none break-words whitespace-pre-wrap',
+                'w-full min-h-[24px] resize-none bg-transparent px-1 text-xs leading-5 outline-none break-words whitespace-pre-wrap',
                 task.done && 'line-through text-board-400'
               )}
               disabled={!canEdit}
@@ -520,18 +521,18 @@ export default function BoardClient({
     }
   };
 
-  const createProject = async () => {
+  const createProject = async (column: ColumnId = 'new') => {
     const newProject: Project = {
       id: crypto.randomUUID(),
       title: 'New project',
       description: null,
-      column: 'new',
+      column,
       color_status: 'white',
       deadline: null,
       assigned_user_id: user.id,
       pinned: false,
       link: null,
-      sort_order: projects.filter((project) => project.column === 'new').length,
+      sort_order: projects.filter((project) => project.column === column).length,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
@@ -1306,7 +1307,17 @@ export default function BoardClient({
             return (
               <ColumnDrop key={column.id} id={column.id}>
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold">{column.label}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-semibold">{column.label}</h3>
+                    <button
+                      type="button"
+                      onClick={() => createProject(column.id)}
+                      className="flex h-5 w-5 items-center justify-center rounded-md bg-board-800 text-white"
+                      aria-label={`Add project to ${column.label}`}
+                    >
+                      +
+                    </button>
+                  </div>
                   <span className="text-xs text-board-400">
                     {columnProjects.length}
                   </span>
@@ -1323,7 +1334,7 @@ export default function BoardClient({
                         tasks={getProjectTasks(project.id)}
                         profiles={profiles}
                         dueLabel={(() => {
-                          if (!project.deadline) return null;
+                          if (!project.deadline) return 'waiting';
                           const today = startOfDay(new Date());
                           const deadline = toDateOnly(project.deadline);
                           if (isBefore(deadline, today)) return 'overdue';
