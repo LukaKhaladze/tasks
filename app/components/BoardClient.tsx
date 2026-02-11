@@ -367,16 +367,11 @@ export default function BoardClient({
   const [appConfig, setAppConfig] = useState<AppSettings>(appSettings);
   const [savingCount, setSavingCount] = useState(0);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
-  const [search, setSearch] = useState('');
-  const [filterUser, setFilterUser] = useState('');
-  const [filterColor, setFilterColor] = useState('');
-  const [dueFilter, setDueFilter] = useState<'all' | 'today' | 'soon' | 'overdue'>(
-    'all'
-  );
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Project | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showUsers, setShowUsers] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserName, setNewUserName] = useState('');
@@ -434,26 +429,7 @@ export default function BoardClient({
     [dueSoonDays]
   );
 
-  const filteredProjects = useMemo(() => {
-    return projects.filter((project) => {
-      if (filterUser && project.assigned_user_id !== filterUser) return false;
-      if (filterColor && project.color_status !== filterColor) return false;
-      const status = dueStatus(project);
-      if (dueFilter === 'today' && status !== 'today') return false;
-      if (dueFilter === 'soon' && status !== 'soon') return false;
-      if (dueFilter === 'overdue' && status !== 'overdue') return false;
-      if (search.trim()) {
-        const searchLower = search.toLowerCase();
-        const taskText = getProjectTasks(project.id)
-          .map((task) => task.text)
-          .join(' ')
-          .toLowerCase();
-        const haystack = `${project.title} ${project.description ?? ''} ${taskText}`.toLowerCase();
-        if (!haystack.includes(searchLower)) return false;
-      }
-      return true;
-    });
-  }, [projects, filterUser, filterColor, dueFilter, search, dueStatus, getProjectTasks]);
+  const filteredProjects = projects;
 
   const projectsByColumn = useMemo(() => {
     const map = new Map<ColumnId, Project[]>();
@@ -466,20 +442,6 @@ export default function BoardClient({
       map.set(column, list);
     });
     return map;
-  }, [filteredProjects]);
-
-  const counters = useMemo(() => {
-    const byColumn: Record<string, number> = {};
-    const byColor: Record<string, number> = {};
-    const byUser: Record<string, number> = {};
-    filteredProjects.forEach((project) => {
-      byColumn[project.column] = (byColumn[project.column] ?? 0) + 1;
-      byColor[project.color_status] = (byColor[project.color_status] ?? 0) + 1;
-      if (project.assigned_user_id) {
-        byUser[project.assigned_user_id] = (byUser[project.assigned_user_id] ?? 0) + 1;
-      }
-    });
-    return { byColumn, byColor, byUser };
   }, [filteredProjects]);
 
   const canEdit = (_project: Project) => true;
@@ -1063,99 +1025,70 @@ export default function BoardClient({
         onRemove={(id) => setToasts((prev) => prev.filter((toast) => toast.id !== id))}
       />
 
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold">Realtime Project Manager</h1>
-          <p className="text-board-300">Welcome back, {user.email ?? 'User'}.</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <a
-            href="/users"
-            className="rounded-xl border border-board-700 px-4 py-2 text-sm"
-          >
-            Users
-          </a>
-          <a
-            href="/stats"
-            className="rounded-xl border border-board-700 px-4 py-2 text-sm"
-          >
-            Stats
-          </a>
-          <button
-            onClick={createProject}
-            className="rounded-xl bg-accent-500 px-4 py-2 text-sm font-semibold text-white"
-          >
-            New project
-          </button>
-          <button
-            onClick={() => setShowSettings((prev) => !prev)}
-            className="rounded-xl border border-board-700 px-4 py-2 text-sm"
-          >
-            Settings
-          </button>
-          <button
-            onClick={handleSignOut}
-            className="rounded-xl border border-board-700 px-4 py-2 text-sm"
-          >
-            Sign out
-          </button>
-        </div>
-      </header>
+      <div className="mb-3 flex justify-end">
+        <button
+          type="button"
+          onClick={() => setMenuOpen((prev) => !prev)}
+          className="rounded-lg border border-board-700 bg-board-900 px-3 py-2 text-board-200"
+          aria-label="Open menu"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </button>
+      </div>
 
-      <section className="mt-6 rounded-2xl border border-board-700 bg-board-900/70 p-4">
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-5">
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search title, description, tasks"
-            className="rounded-lg bg-board-850 border border-board-700 px-3 py-2 text-sm"
-          />
-          <select
-            value={filterUser}
-            onChange={(event) => setFilterUser(event.target.value)}
-            className="rounded-lg bg-board-850 border border-board-700 px-3 py-2 text-sm"
-          >
-            <option value="">All users</option>
-            {profiles.map((profile) => (
-              <option key={profile.id} value={profile.id}>
-                {profile.email ?? profile.id}
-              </option>
-            ))}
-          </select>
-          <select
-            value={filterColor}
-            onChange={(event) => setFilterColor(event.target.value)}
-            className="rounded-lg bg-board-850 border border-board-700 px-3 py-2 text-sm"
-          >
-            <option value="">All colors</option>
-            {colorOptions.map((color) => (
-              <option key={color} value={color}>
-                {color}
-              </option>
-            ))}
-          </select>
-          <select
-            value={dueFilter}
-            onChange={(event) =>
-              setDueFilter(event.target.value as 'all' | 'today' | 'soon' | 'overdue')
-            }
-            className="rounded-lg bg-board-850 border border-board-700 px-3 py-2 text-sm"
-          >
-            <option value="all">All due</option>
-            <option value="today">Due today</option>
-            <option value="soon">Due soon</option>
-            <option value="overdue">Overdue</option>
-          </select>
-          <div className="flex gap-2" />
+      {menuOpen && (
+        <div className="mb-4 ml-auto w-full max-w-xs rounded-xl border border-board-700 bg-board-900 p-3">
+          <div className="grid grid-cols-1 gap-2 text-sm">
+            <a
+              href="/dashboard"
+              className="rounded-lg border border-board-700 px-3 py-2"
+              onClick={() => setMenuOpen(false)}
+            >
+              Dashboard
+            </a>
+            <a
+              href="/users"
+              className="rounded-lg border border-board-700 px-3 py-2"
+              onClick={() => setMenuOpen(false)}
+            >
+              Users
+            </a>
+            <a
+              href="/stats"
+              className="rounded-lg border border-board-700 px-3 py-2"
+              onClick={() => setMenuOpen(false)}
+            >
+              Stats
+            </a>
+            <button
+              onClick={() => {
+                setMenuOpen(false);
+                createProject();
+              }}
+              className="rounded-lg bg-accent-500 px-3 py-2 font-semibold text-white"
+            >
+              New project
+            </button>
+            <button
+              onClick={() => {
+                setMenuOpen(false);
+                setShowSettings((prev) => !prev);
+              }}
+              className="rounded-lg border border-board-700 px-3 py-2 text-left"
+            >
+              Settings
+            </button>
+            <button
+              onClick={handleSignOut}
+              className="rounded-lg border border-board-700 px-3 py-2 text-left"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
-        <div className="mt-4 flex flex-wrap gap-4 text-xs text-board-300">
-          {columns.map((column) => (
-            <span key={column.id}>
-              {column.label}: {counters.byColumn[column.id] ?? 0}
-            </span>
-          ))}
-        </div>
-      </section>
+      )}
 
       {showSettings && (
         <section className="mt-4 rounded-2xl border border-board-700 bg-board-900/80 p-3">
