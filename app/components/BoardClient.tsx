@@ -100,7 +100,6 @@ function ProjectCard({
     setDraftDescription(project.description ?? '');
   }, [project.title, project.description]);
 
-  const doneCount = tasks.filter((task) => task.done).length;
   const previewTasks = tasks.slice(0, 3);
 
   return (
@@ -193,13 +192,12 @@ function ProjectCard({
             {dueLabel}
           </span>
         )}
-        {assigned?.email && <span>· {assigned.email}</span>}
-        <span>· {doneCount}/{tasks.length} done</span>
       </div>
       <div className="mt-2 flex items-center gap-2 text-xs">
         <select
           value={project.column}
           onChange={(event) => onMove(event.target.value as ColumnId)}
+          onMouseDown={(event) => event.stopPropagation()}
           className="rounded-lg border border-board-700 bg-board-900 px-2 py-1"
           disabled={!canEdit}
         >
@@ -209,6 +207,19 @@ function ProjectCard({
             </option>
           ))}
         </select>
+        <input
+          type="date"
+          value={project.deadline ?? ''}
+          onChange={(event) =>
+            onUpdate({
+              ...project,
+              deadline: event.target.value || null
+            })
+          }
+          onMouseDown={(event) => event.stopPropagation()}
+          className="rounded-lg border border-board-700 bg-board-900 px-2 py-1"
+          disabled={!canEdit}
+        />
       </div>
       {!canEdit && (
         <div className="mt-2 text-[11px] text-board-400">Read-only</div>
@@ -223,6 +234,7 @@ function ProjectCard({
               type="checkbox"
               checked={task.done}
               onChange={() => onUpdateTask({ ...task, done: !task.done })}
+              onMouseDown={(event) => event.stopPropagation()}
               className="h-4 w-4"
               disabled={!canEdit}
             />
@@ -236,6 +248,7 @@ function ProjectCard({
             <textarea
               value={task.text}
               onChange={(event) => onUpdateTask({ ...task, text: event.target.value })}
+              onMouseDown={(event) => event.stopPropagation()}
               rows={2}
               className={clsx(
                 'flex-1 resize-none bg-transparent text-xs outline-none',
@@ -244,10 +257,30 @@ function ProjectCard({
               disabled={!canEdit}
             />
             <select
+              value={task.assigned_user_id ?? ''}
+              onChange={(event) =>
+                onUpdateTask({
+                  ...task,
+                  assigned_user_id: event.target.value || null
+                })
+              }
+              onMouseDown={(event) => event.stopPropagation()}
+              className="rounded-md bg-board-900 border border-board-700 px-1 py-1 text-[10px]"
+              disabled={!canEdit}
+            >
+              <option value="">Unassigned</option>
+              {profiles.map((profile) => (
+                <option key={profile.id} value={profile.id}>
+                  {profile.name?.trim() || profile.email || 'User'}
+                </option>
+              ))}
+            </select>
+            <select
               value={task.color_status ?? 'white'}
               onChange={(event) =>
                 onUpdateTask({ ...task, color_status: event.target.value as Task['color_status'] })
               }
+              onMouseDown={(event) => event.stopPropagation()}
               className="rounded-md bg-board-900 border border-board-700 px-1 py-1 text-[10px]"
               disabled={!canEdit}
             >
@@ -268,10 +301,12 @@ function ProjectCard({
             )}
             <button
               onClick={() => onDeleteTask(task)}
+              onMouseDown={(event) => event.stopPropagation()}
               disabled={!canEdit}
-              className="text-red-400 text-[10px]"
+              className="text-red-400 text-xs"
+              aria-label="Delete task"
             >
-              del
+              X
             </button>
           </div>
         ))}
@@ -279,6 +314,7 @@ function ProjectCard({
           <input
             value={newTask}
             onChange={(event) => setNewTask(event.target.value)}
+            onMouseDown={(event) => event.stopPropagation()}
             placeholder="Add task"
             className="flex-1 rounded-lg bg-board-900 border border-board-700 px-2 py-1 text-xs"
             disabled={!canEdit}
@@ -289,6 +325,7 @@ function ProjectCard({
               onAddTask(newTask.trim());
               setNewTask('');
             }}
+            onMouseDown={(event) => event.stopPropagation()}
             className="rounded-lg bg-accent-500 px-2 text-xs text-white"
             disabled={!canEdit}
           >
@@ -855,15 +892,19 @@ export default function BoardClient({
         });
       },
       () => setProjects(previous),
-      () =>
-        supabase.from('projects').upsert(
-          updatedProjects.map((project) => ({
-            id: project.id,
-            column: project.column,
-            sort_order: project.sort_order
-          })),
-          { onConflict: 'id' }
-        )
+      async () => {
+        for (const nextProject of updatedProjects) {
+          const { error } = await supabase
+            .from('projects')
+            .update({
+              column: nextProject.column,
+              sort_order: nextProject.sort_order
+            })
+            .eq('id', nextProject.id);
+          if (error) return { error } as any;
+        }
+        return { error: null } as any;
+      }
     );
   };
 
