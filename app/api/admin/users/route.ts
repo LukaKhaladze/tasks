@@ -13,6 +13,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const admin = createAdminClient();
+  const { data: currentProfile } = await admin
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (currentProfile?.role !== 'admin') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const body = await request.json();
   const { email, password, name } = body as {
     email: string;
@@ -20,14 +31,16 @@ export async function POST(request: Request) {
     name?: string;
   };
 
-  if (!email) {
+  if (!email?.trim()) {
     return NextResponse.json({ error: 'Email required' }, { status: 400 });
   }
 
-  const admin = createAdminClient();
+  const cleanEmail = email?.trim();
+  const cleanPassword = password?.trim();
+
   const { data, error } = await admin.auth.admin.createUser({
-    email,
-    password,
+    email: cleanEmail,
+    password: cleanPassword,
     email_confirm: true
   });
 

@@ -16,6 +16,17 @@ export async function PATCH(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const admin = createAdminClient();
+  const { data: currentProfile } = await admin
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (currentProfile?.role !== 'admin') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const body = await request.json();
   const { email, password, name } = body as {
     email?: string;
@@ -23,12 +34,13 @@ export async function PATCH(
     name?: string;
   };
 
-  const admin = createAdminClient();
+  const cleanEmail = email?.trim();
+  const cleanPassword = password?.trim();
 
-  if (email || password) {
+  if (cleanEmail || cleanPassword) {
     const { error } = await admin.auth.admin.updateUserById(params.id, {
-      email,
-      password
+      ...(cleanEmail ? { email: cleanEmail } : {}),
+      ...(cleanPassword ? { password: cleanPassword } : {})
     });
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
@@ -56,6 +68,16 @@ export async function DELETE(
   }
 
   const admin = createAdminClient();
+  const { data: currentProfile } = await admin
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (currentProfile?.role !== 'admin') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const { error } = await admin.auth.admin.deleteUser(params.id);
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
