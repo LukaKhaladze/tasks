@@ -29,6 +29,7 @@ const columns: { id: ColumnId; label: string }[] = [
   { id: 'support', label: 'Support' },
   { id: 'financial', label: 'Financial' }
 ];
+const restrictedColumnIds: ColumnId[] = ['current', 'support'];
 
 const colorOptions: Project['color_status'][] = ['white', 'red', 'yellow', 'green'];
 
@@ -82,6 +83,7 @@ function ProjectCard({
   project,
   tasks,
   profiles,
+  availableColumns,
   dueLabel,
   onDelete,
   onMove,
@@ -94,6 +96,7 @@ function ProjectCard({
   project: Project;
   tasks: Task[];
   profiles: Profile[];
+  availableColumns: { id: ColumnId; label: string }[];
   dueLabel: string | null;
   onDelete: () => void;
   onMove: (column: ColumnId) => void;
@@ -195,7 +198,7 @@ function ProjectCard({
           className="appearance-none rounded-lg border border-board-700 bg-board-900 px-2 py-1"
           disabled={!canEdit}
         >
-          {columns.map((column) => (
+          {availableColumns.map((column) => (
             <option key={column.id} value={column.id}>
               {column.label}
             </option>
@@ -437,6 +440,24 @@ export default function BoardClient({
     [profiles, user.id]
   );
   const isAdmin = currentProfile?.role === 'admin';
+  const profileKey = (
+    currentProfile?.name?.trim() ||
+    currentProfile?.email?.split('@')[0] ||
+    user.email?.split('@')[0] ||
+    ''
+  ).toLowerCase();
+  const isRestrictedUser = profileKey === 'giorgi' || profileKey === 'ani';
+  const visibleColumns = useMemo(
+    () =>
+      isRestrictedUser
+        ? columns.filter((column) => restrictedColumnIds.includes(column.id))
+        : columns,
+    [isRestrictedUser]
+  );
+  const allowedColumnIds = useMemo(
+    () => new Set<ColumnId>(visibleColumns.map((column) => column.id)),
+    [visibleColumns]
+  );
 
   const dueSoonDays = settings?.due_soon_days ?? 3;
 
@@ -485,7 +506,10 @@ export default function BoardClient({
     [dueSoonDays]
   );
 
-  const filteredProjects = projects;
+  const filteredProjects = useMemo(
+    () => projects.filter((project) => allowedColumnIds.has(project.column)),
+    [projects, allowedColumnIds]
+  );
 
   const projectsByColumn = useMemo(() => {
     const map = new Map<ColumnId, Project[]>();
@@ -501,8 +525,9 @@ export default function BoardClient({
   }, [filteredProjects]);
 
   const boardStats = useMemo(() => {
-    const activeTasks = tasks.filter((task) => !task.done).length;
-    const totalProjects = projects.length;
+    const visibleProjectIds = new Set(filteredProjects.map((project) => project.id));
+    const activeTasks = tasks.filter((task) => !task.done && visibleProjectIds.has(task.project_id)).length;
+    const totalProjects = filteredProjects.length;
     const columnCounts: Record<ColumnId, number> = {
       new: 0,
       current: 0,
@@ -524,7 +549,7 @@ export default function BoardClient({
     };
     const byUser: Record<string, number> = {};
 
-    projects.forEach((project) => {
+    filteredProjects.forEach((project) => {
       columnCounts[project.column] += 1;
       if (!project.deadline) {
         statusCounts.waiting += 1;
@@ -548,6 +573,7 @@ export default function BoardClient({
 
     // Color and user stats should reflect task-level usage in the board UI.
     tasks.forEach((task) => {
+      if (!visibleProjectIds.has(task.project_id)) return;
       const taskColor = task.color_status ?? 'white';
       colorCounts[taskColor] += 1;
       if (task.assigned_user_id) {
@@ -564,7 +590,7 @@ export default function BoardClient({
       .sort((a, b) => a.name.localeCompare(b.name));
 
     return { activeTasks, totalProjects, columnCounts, colorCounts, statusCounts, users };
-  }, [tasks, projects, profiles, dueSoonDays]);
+  }, [tasks, filteredProjects, profiles, dueSoonDays]);
 
   const canEdit = (_project: Project) => true;
 
@@ -591,18 +617,21 @@ export default function BoardClient({
     }
   };
 
-  const createProject = async (column: ColumnId = 'new') => {
+  const createProject = async (column?: ColumnId) => {
+    const defaultColumn = visibleColumns[0]?.id ?? 'new';
+    const targetColumn =
+      column && allowedColumnIds.has(column) ? column : defaultColumn;
     const newProject: Project = {
       id: crypto.randomUUID(),
       title: 'New project',
       description: null,
-      column,
+      column: targetColumn,
       color_status: 'white',
       deadline: null,
       assigned_user_id: user.id,
       pinned: false,
       link: null,
-      sort_order: projects.filter((project) => project.column === column).length,
+      sort_order: projects.filter((project) => project.column === targetColumn).length,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
@@ -784,6 +813,7 @@ export default function BoardClient({
   };
 
   const handleMoveProject = async (project: Project, column: ColumnId) => {
+    if (!allowedColumnIds.has(column)) return;
     if (!canEdit(project)) return;
     const previous = projects;
     const next = { ...project, column };
@@ -938,6 +968,7 @@ export default function BoardClient({
 
     const overProject = projects.find((project) => project.id === overId);
     const targetColumn = (overProject?.column ?? overId) as ColumnId;
+    if (!allowedColumnIds.has(targetColumn)) return;
     const sourceColumn = activeProject.column;
 
     const sourceList = projects
@@ -1194,7 +1225,7 @@ export default function BoardClient({
           <span className="rounded-full bg-board-900 px-2 py-1">
           tasks: {boardStats.activeTasks}
           </span>
-          {columns.map((column) => (
+          {visibleColumns.map((column) => (
             <span key={column.id} className="rounded-full bg-board-900 px-2 py-1">
               {column.label.toLowerCase()}: {boardStats.columnCounts[column.id]}
             </span>
@@ -1404,7 +1435,7 @@ export default function BoardClient({
 
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         <section className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-4">
-          {columns.map((column) => {
+          {visibleColumns.map((column) => {
             const columnProjects = projectsByColumn.get(column.id) ?? [];
             return (
               <ColumnDrop key={column.id} id={column.id}>
@@ -1435,6 +1466,7 @@ export default function BoardClient({
                         project={project}
                         tasks={getProjectTasks(project.id)}
                         profiles={profiles}
+                        availableColumns={visibleColumns}
                         dueLabel={(() => {
                           if (!project.deadline) return 'waiting';
                           const today = startOfDay(new Date());
