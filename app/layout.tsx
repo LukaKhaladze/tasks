@@ -10,9 +10,6 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: 'Taskboard',
   description: 'Realtime project manager',
-  icons: {
-    icon: '/none.png'
-  },
   robots: {
     index: false,
     follow: false,
